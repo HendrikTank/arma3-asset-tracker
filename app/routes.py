@@ -6,6 +6,7 @@ from datetime import datetime
 import json
 import csv
 import io
+import os
 
 main = Blueprint('main', __name__)
 
@@ -1358,9 +1359,13 @@ def download_report_file(filename):
     if not current_user.is_manager:
         return jsonify({'error': 'Unauthorized'}), 403
     
-    import os
-    reports_dir = '/app/reports'
-    filepath = os.path.join(reports_dir, filename)
+    reports_dir = os.path.abspath('/app/reports')
+    filepath = os.path.abspath(os.path.join(reports_dir, filename))
+    
+    # Ensure the resolved path is within the reports directory to prevent path traversal
+    if not filepath.startswith(reports_dir + os.sep) and filepath != reports_dir:
+        flash('Report file not found', 'error')
+        return redirect(url_for('main.reports_dashboard'))
     
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
