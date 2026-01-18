@@ -399,3 +399,43 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Python / Flask specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+env/
+ENV/
+.venv
+
+# Environment files - NEVER commit these!
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# Reports (generated at runtime)
+reports/*.json
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db

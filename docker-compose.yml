@@ -6,15 +6,20 @@ services:
     ports:
       - "5000:5000"
     environment:
+      - FLASK_ENV=development
       - DATABASE_URL=postgresql://postgres:password@db/asset_tracker
-      - SECRET_KEY=your-secret-key-change-this-in-production
+      - SECRET_KEY=dev-secret-key-change-this-in-production
+      - SESSION_COOKIE_SECURE=False  # Allow HTTP in development
+      - LOG_LEVEL=DEBUG
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./app:/app/app
       - ./reports:/app/reports
-    # Note: We're using the command from Dockerfile
+      - ./logs:/app/logs
+    # Override Dockerfile CMD for development
+    command: python wsgi.py
 
   db:
     image: postgres:15
@@ -25,6 +30,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"  # Expose for local development tools
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

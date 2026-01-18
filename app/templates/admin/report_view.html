@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.admin_dashboard') }}"><i class="bi bi-gear"></i> Admin</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.reports_dashboard') }}">Reports</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">{{ campaign.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.reports_dashboard') }}">← Back to Reports</a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{{ url_for('main.download_campaign_report', campaign_id=campaign.id, format='csv') }}">
+                <i class="bi bi-download"></i> CSV
+            </a>
+            <a class="nav-link" href="{{ url_for('main.download_campaign_report', campaign_id=campaign.id, format='json') }}">
+                <i class="bi bi-download"></i> JSON
+            </a>
+            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- Campaign Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1>{{ campaign.name }} - Report</h1>
+            <p class="text-muted">{{ campaign.description or 'No description' }}</p>
+        </div>
+        <div class="text-end">
+            {% if campaign.is_active %}
+                <span class="badge bg-success fs-6">Active</span>
+            {% elif campaign.is_closed %}
+                <span class="badge bg-secondary fs-6">Closed</span>
+            {% else %}
+                <span class="badge bg-warning fs-6">Inactive</span>
+            {% endif %}
+            <br>
+            <small class="text-muted">
+                {{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'N/A' }}
+                {% if campaign.end_date %} - {{ campaign.end_date.strftime('%Y-%m-%d') }}{% endif %}
+            </small>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ campaign_assets|length }}</h3>
+                    <p class="mb-0 text-muted">Total Assets</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ mission_stats.total }}</h3>
+                    <p class="mb-0 text-muted">Missions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ total_events }}</h3>
+                    <p class="mb-0 text-muted">Events</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="{% if total_change > 0 %}text-success{% elif total_change < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        {% if total_change > 0 %}+{% endif %}{{ total_change }}
+                    </h3>
+                    <p class="mb-0 text-muted">Net Asset Change</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mission Statistics -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Mission Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <canvas id="missionStatusChart" height="200"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <h6>Mission Status Breakdown</h6>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Completed
+                            <span class="badge bg-success">{{ mission_stats.completed }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            In Progress
+                            <span class="badge bg-warning">{{ mission_stats.in_progress }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Planned
+                            <span class="badge bg-primary">{{ mission_stats.planned }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Cancelled
+                            <span class="badge bg-danger">{{ mission_stats.cancelled }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Statistics by Type -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Assets by Type</h5>
+        </div>
+        <div class="card-body">
+            {% if asset_types %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Asset Type</th>
+                            <th>Count</th>
+                            <th>Initial Qty</th>
+                            <th>Current Qty</th>
+                            <th>Net Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for type_name, stats in asset_types.items() %}
+                        <tr>
+                            <td><span class="badge bg-primary">{{ type_name }}</span></td>
+                            <td>{{ stats.count }}</td>
+                            <td>{{ stats.initial }}</td>
+                            <td>{{ stats.current }}</td>
+                            <td>
+                                {% set change = stats.current - stats.initial %}
+                                <span class="{% if change > 0 %}text-success{% elif change < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                    {% if change > 0 %}+{% endif %}{{ change }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">No asset types in this campaign.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Detailed Asset List -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Detailed Asset Inventory</h5>
+        </div>
+        <div class="card-body">
+            {% if campaign_assets %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Asset Name</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Initial</th>
+                            <th>Current</th>
+                            <th>Change</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ca in campaign_assets %}
+                        <tr>
+                            <td>{{ ca.asset.name }}</td>
+                            <td><span class="badge bg-secondary">{{ ca.asset.type }}</span></td>
+                            <td>{{ ca.asset.category or '-' }}</td>
+                            <td>{{ ca.initial_quantity }}</td>
+                            <td>{{ ca.current_quantity }}</td>
+                            <td>
+                                {% set change = ca.current_quantity - ca.initial_quantity %}
+                                <span class="{% if change > 0 %}text-success{% elif change < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                    {% if change > 0 %}+{% endif %}{{ change }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if ca.current_quantity == 0 %}
+                                    <span class="badge bg-danger">Depleted</span>
+                                {% elif ca.current_quantity < ca.initial_quantity * 0.25 %}
+                                    <span class="badge bg-warning">Low</span>
+                                {% elif ca.current_quantity > ca.initial_quantity %}
+                                    <span class="badge bg-success">Surplus</span>
+                                {% else %}
+                                    <span class="badge bg-info">Normal</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">No assets in this campaign.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Print Button -->
+    <div class="text-center mb-4">
+        <button onclick="window.print()" class="btn btn-lg btn-outline-primary">
+            <i class="bi bi-printer"></i> Print Report
+        </button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// Mission Status Chart
+const ctx = document.getElementById('missionStatusChart').getContext('2d');
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Completed', 'In Progress', 'Planned', 'Cancelled'],
+        datasets: [{
+            data: [
+                {{ mission_stats.completed }},
+                {{ mission_stats.in_progress }},
+                {{ mission_stats.planned }},
+                {{ mission_stats.cancelled }}
+            ],
+            backgroundColor: [
+                '#198754',
+                '#ffc107',
+                '#0d6efd',
+                '#dc3545'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
+
+<style>
+@media print {
+    .navbar, .breadcrumb, button { display: none !important; }
+    .card { border: 1px solid #000 !important; page-break-inside: avoid; }
+}
+</style>
+{% endblock %}

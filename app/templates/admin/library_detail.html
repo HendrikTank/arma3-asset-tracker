@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.admin_dashboard') }}"><i class="bi bi-gear"></i> Admin</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.manage_libraries') }}">Asset Libraries</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">{{ library.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.manage_libraries') }}">← Back to Libraries</a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>{{ library.name }}</h1>
+            {% if library.category %}
+                <p class="text-muted mb-0"><i class="bi bi-tag"></i> {{ library.category }}</p>
+            {% endif %}
+            {% if library.description %}
+                <p class="text-muted">{{ library.description }}</p>
+            {% endif %}
+        </div>
+        {% if library.is_default %}
+            <span class="badge bg-success fs-6">Default Library</span>
+        {% endif %}
+    </div>
+
+    <!-- Add New Asset Form -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5><i class="bi bi-plus-circle"></i> Add New Asset to Library</h5>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#importAssetsModal">
+                <i class="bi bi-box-arrow-in-down"></i> Import from Other Libraries
+            </button>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.add_asset_to_library', library_id=library.id) }}">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">Asset Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required 
+                               placeholder="e.g., Humvee, M4 Rifle, Medkit">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="type" class="form-label">Asset Type *</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="">Select Type</option>
+                            <option value="Vehicle">Vehicle</option>
+                            <option value="Weapon">Weapon</option>
+                            <option value="Ammunition">Ammunition</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Communication">Communication</option>
+                            <option value="Supplies">Supplies</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="category" class="form-label">Category (Optional)</label>
+                        <input type="text" class="form-control" id="category" name="category" 
+                               placeholder="e.g., Ground Vehicle, Assault Rifle, First Aid">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="default_quantity" class="form-label">Default Quantity</label>
+                        <input type="number" class="form-control" id="default_quantity" name="default_quantity" 
+                               value="1" min="0" required>
+                        <small class="text-muted">Starting quantity when imported to campaigns</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label d-block">Options</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_unique" name="is_unique">
+                            <label class="form-check-label" for="is_unique">
+                                Is Unique
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="show_in_public" name="show_in_public" checked>
+                            <label class="form-check-label" for="show_in_public">
+                                Show in Public
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="2"
+                              placeholder="Optional description or notes about this asset"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add Asset
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assets in Library -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Assets in {{ library.name }}</h5>
+            <span class="badge bg-primary">{{ assets|length }} assets</span>
+        </div>
+        <div class="card-body">
+            {% if assets %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Default Qty</th>
+                                <th>Visibility</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset in assets %}
+                            <tr>
+                                <td>
+                                    <strong>{{ asset.name }}</strong>
+                                    {% if asset.is_unique %}
+                                        <span class="badge bg-warning text-dark ms-1">Unique</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-primary">{{ asset.type }}</span></td>
+                                <td>{{ asset.category or '-' }}</td>
+                                <td class="text-center">{{ asset.default_quantity }}</td>
+                                <td class="text-center">
+                                    {% if asset.show_in_public %}
+                                        <i class="bi bi-eye text-success" title="Visible to public"></i>
+                                    {% else %}
+                                        <i class="bi bi-eye-slash text-muted" title="Hidden from public"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if asset.description %}
+                                        {{ asset.description[:60] }}{% if asset.description|length > 60 %}...{% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editModal{{ asset.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="confirmDelete({{ asset.id }}, '{{ asset.name }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Edit Modal for each asset -->
+                            <div class="modal fade" id="editModal{{ asset.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Asset: {{ asset.name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('main.edit_library_asset', library_id=library.id, asset_id=asset.id) }}">
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label for="edit_name{{ asset.id }}" class="form-label">Asset Name *</label>
+                                                    <input type="text" class="form-control" id="edit_name{{ asset.id }}" 
+                                                           name="name" value="{{ asset.name }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="edit_type{{ asset.id }}" class="form-label">Asset Type *</label>
+                                                    <select class="form-select" id="edit_type{{ asset.id }}" name="type" required>
+                                                        <option value="Vehicle" {% if asset.type == 'Vehicle' %}selected{% endif %}>Vehicle</option>
+                                                        <option value="Weapon" {% if asset.type == 'Weapon' %}selected{% endif %}>Weapon</option>
+                                                        <option value="Ammunition" {% if asset.type == 'Ammunition' %}selected{% endif %}>Ammunition</option>
+                                                        <option value="Medical" {% if asset.type == 'Medical' %}selected{% endif %}>Medical</option>
+                                                        <option value="Equipment" {% if asset.type == 'Equipment' %}selected{% endif %}>Equipment</option>
+                                                        <option value="Communication" {% if asset.type == 'Communication' %}selected{% endif %}>Communication</option>
+                                                        <option value="Supplies" {% if asset.type == 'Supplies' %}selected{% endif %}>Supplies</option>
+                                                        <option value="Other" {% if asset.type == 'Other' %}selected{% endif %}>Other</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="edit_category{{ asset.id }}" class="form-label">Category</label>
+                                                    <input type="text" class="form-control" id="edit_category{{ asset.id }}" 
+                                                           name="category" value="{{ asset.category or '' }}">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="edit_default_quantity{{ asset.id }}" class="form-label">Default Quantity</label>
+                                                    <input type="number" class="form-control" id="edit_default_quantity{{ asset.id }}" 
+                                                           name="default_quantity" value="{{ asset.default_quantity }}" min="0" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="edit_description{{ asset.id }}" class="form-label">Description</label>
+                                                    <textarea class="form-control" id="edit_description{{ asset.id }}" 
+                                                              name="description" rows="3">{{ asset.description or '' }}</textarea>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="edit_is_unique{{ asset.id }}" 
+                                                           name="is_unique" {% if asset.is_unique %}checked{% endif %}>
+                                                    <label class="form-check-label" for="edit_is_unique{{ asset.id }}">
+                                                        Is Unique Asset
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="edit_show_in_public{{ asset.id }}" 
+                                                           name="show_in_public" {% if asset.show_in_public %}checked{% endif %}>
+                                                    <label class="form-check-label" for="edit_show_in_public{{ asset.id }}">
+                                                        Show in Public View
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No assets in this library yet. Add your first asset above!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Import Assets Modal -->
+<div class="modal fade" id="importAssetsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Assets from Other Libraries</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Search and Filter -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="assetSearch" 
+                               placeholder="Search assets by name or type...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="libraryFilter">
+                            <option value="">All Libraries</option>
+                            {% for lib in all_libraries %}
+                                {% if lib.id != library.id %}
+                                    <option value="{{ lib.id }}">{{ lib.name }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="typeFilter">
+                            <option value="">All Types</option>
+                            <option value="Vehicle">Vehicle</option>
+                            <option value="Weapon">Weapon</option>
+                            <option value="Ammunition">Ammunition</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Communication">Communication</option>
+                            <option value="Supplies">Supplies</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Assets List -->
+                <form id="importAssetsForm" method="POST" action="{{ url_for('main.import_assets_to_library', library_id=library.id) }}">
+                    <div id="importAssetsList" style="max-height: 400px; overflow-y: auto;">
+                        {% for lib in all_libraries %}
+                            {% if lib.id != library.id %}
+                                {% for asset in lib.assets %}
+                                <div class="form-check border-bottom py-2 asset-item" 
+                                     data-library-id="{{ lib.id }}"
+                                     data-asset-name="{{ asset.name|lower }}"
+                                     data-asset-type="{{ asset.type }}">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="asset_ids" value="{{ asset.id }}" 
+                                           id="import_asset_{{ asset.id }}">
+                                    <label class="form-check-label w-100" for="import_asset_{{ asset.id }}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong>{{ asset.name }}</strong>
+                                                <span class="badge bg-primary ms-2">{{ asset.type }}</span>
+                                                {% if asset.category %}
+                                                    <span class="badge bg-secondary ms-1">{{ asset.category }}</span>
+                                                {% endif %}
+                                                {% if asset.is_unique %}
+                                                    <span class="badge bg-warning text-dark ms-1">Unique</span>
+                                                {% endif %}
+                                                <br>
+                                                <small class="text-muted">
+                                                    From: {{ lib.name }} 
+                                                    {% if asset.description %}
+                                                        • {{ asset.description[:50] }}{% if asset.description|length > 50 %}...{% endif %}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            <small class="text-muted">Qty: {{ asset.default_quantity }}</small>
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="alert alert-info mt-3" id="noResultsMessage" style="display: none;">
+                        <i class="bi bi-info-circle"></i> No assets found matching your search criteria.
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Selected assets will be copied to this library. The originals remain in their source libraries.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="importAssetsBtn">
+                    <i class="bi bi-box-arrow-in-down"></i> Import Selected Assets
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation form -->
+<form id="deleteAssetForm" method="POST" style="display: none;">
+    <input type="hidden" name="asset_id" id="deleteAssetId">
+</form>
+
+<script>
+function confirmDelete(assetId, assetName) {
+    if (confirm(`Are you sure you want to delete "${assetName}"?\n\nThis will remove it from the library and any campaigns using it.`)) {
+        const form = document.getElementById('deleteAssetForm');
+        form.action = `/admin/libraries/{{ library.id }}/delete-asset`;
+        document.getElementById('deleteAssetId').value = assetId;
+        form.submit();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('assetSearch');
+    const libraryFilter = document.getElementById('libraryFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const assetItems = document.querySelectorAll('.asset-item');
+    const noResultsMessage = document.getElementById('noResultsMessage');
+    const importAssetsBtn = document.getElementById('importAssetsBtn');
+    const importAssetsForm = document.getElementById('importAssetsForm');
+
+    function filterAssets() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedLibrary = libraryFilter.value;
+        const selectedType = typeFilter.value;
+        let visibleCount = 0;
+
+        assetItems.forEach(item => {
+            const assetName = item.dataset.assetName;
+            const assetType = item.dataset.assetType;
+            const libraryId = item.dataset.libraryId;
+
+            const matchesSearch = assetName.includes(searchTerm) || assetType.toLowerCase().includes(searchTerm);
+            const matchesLibrary = !selectedLibrary || libraryId === selectedLibrary;
+            const matchesType = !selectedType || assetType === selectedType;
+
+            if (matchesSearch && matchesLibrary && matchesType) {
+                item.style.display = 'block';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Show/hide no results message
+        if (visibleCount === 0) {
+            noResultsMessage.style.display = 'block';
+        } else {
+            noResultsMessage.style.display = 'none';
+        }
+    }
+
+    // Add event listeners for search and filters
+    searchInput.addEventListener('input', filterAssets);
+    libraryFilter.addEventListener('change', filterAssets);
+    typeFilter.addEventListener('change', filterAssets);
+
+    // Handle import button click
+    importAssetsBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('input[name="asset_ids"]:checked');
+        
+        if (checkedBoxes.length === 0) {
+            alert('Please select at least one asset to import.');
+            return;
+        }
+
+        if (confirm(`Import ${checkedBoxes.length} asset(s) to this library?`)) {
+            importAssetsForm.submit();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,16 +1,17 @@
 {% extends "base.html" %}
 
-{% block content %}
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('main.admin_dashboard') }}">← Back to Admin Dashboard</a>
-        <div class="navbar-nav">
-            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
-            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
-        </div>
-    </div>
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.admin_dashboard') }}"><i class="bi bi-gear"></i> Admin</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Campaigns</li>
+    </ol>
 </nav>
+{% endblock %}
 
+{% block content %}
 <div class="container mt-4">
     <h1>Campaigns Management</h1>
     
@@ -49,6 +50,69 @@
                     <label for="description" class="form-label">Description</label>
                     <textarea class="form-control" id="description" name="description" rows="3"
                               placeholder="Campaign objectives, setting, or special rules..."></textarea>
+                </div>
+                
+                <!-- Tactical Map Links -->
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-map"></i> Tactical Map Links (Optional)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="map_edit_url" class="form-label">
+                                <i class="bi bi-pencil-square"></i> Editorial Map Link
+                                <small class="text-muted">(Admins & Managers)</small>
+                            </label>
+                            <input type="url" class="form-control" id="map_edit_url" name="map_edit_url"
+                                   placeholder="https://maps-beta.plan-ops.fr/...">
+                            <small class="text-muted">Link to the editable tactical map for planning</small>
+                        </div>
+                        <div class="mb-0">
+                            <label for="map_view_url" class="form-label">
+                                <i class="bi bi-eye"></i> View Map Link
+                                <small class="text-muted">(Public)</small>
+                            </label>
+                            <input type="url" class="form-control" id="map_view_url" name="map_view_url"
+                                   placeholder="https://maps-beta.plan-ops.fr/...">
+                            <small class="text-muted">Read-only link visible to all users</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Library Selection -->
+                <div class="mb-3">
+                    <label class="form-label">Import Asset Libraries <small class="text-muted">(Optional)</small></label>
+                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                        {% if libraries %}
+                            {% for library in libraries %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="libraries" value="{{ library.id }}" 
+                                       id="library_{{ library.id }}"
+                                       {% if library.is_default %}checked{% endif %}>
+                                <label class="form-check-label" for="library_{{ library.id }}">
+                                    <strong>{{ library.name }}</strong>
+                                    {% if library.is_default %}
+                                        <span class="badge bg-success ms-1">Default</span>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted">
+                                        {% if library.category %}{{ library.category }} • {% endif %}
+                                        {{ library.assets|length }} assets
+                                    </small>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-info-circle"></i> No asset libraries available. 
+                                <a href="{{ url_for('main.manage_libraries') }}">Create one first</a>.
+                            </p>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">
+                        Select libraries to import their assets into this campaign. Default libraries are pre-selected.
+                    </small>
                 </div>
                 
                 <div class="form-check mb-3">

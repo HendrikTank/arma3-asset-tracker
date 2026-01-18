@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.admin_dashboard') }}"><i class="bi bi-gear"></i> Admin</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.manage_campaigns') }}">Campaigns</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">{{ campaign.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
@@ -96,6 +110,115 @@
             </div>
         </div>
     </div>
+
+    <!-- Import Libraries Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Import Asset Libraries</h5>
+            <span class="badge bg-secondary">{{ imported_libraries|length }} imported</span>
+        </div>
+        <div class="card-body">
+            {% if imported_libraries %}
+                <div class="mb-3">
+                    <h6>Currently Imported Libraries:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for library in imported_libraries %}
+                            <span class="badge bg-success fs-6">
+                                <i class="bi bi-collection"></i> {{ library.name }}
+                                <small>({{ library.assets|length }} assets)</small>
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if all_libraries|length > imported_library_ids|length %}
+                <form method="POST" action="{{ url_for('main.import_library_to_campaign', campaign_id=campaign.id) }}">
+                    <div class="row align-items-end">
+                        <div class="col-md-8">
+                            <label for="library_id" class="form-label">Import New Library</label>
+                            <select class="form-select" id="library_id" name="library_id" required>
+                                <option value="">Select a library to import...</option>
+                                {% for library in all_libraries %}
+                                    {% if library.id not in imported_library_ids %}
+                                    <option value="{{ library.id }}">
+                                        {{ library.name }}
+                                        {% if library.category %}({{ library.category }}){% endif %}
+                                        - {{ library.assets|length }} assets
+                                    </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-download"></i> Import Library
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="bi bi-info-circle"></i> Importing will add all assets from the library to this campaign.
+                    </small>
+                </form>
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-check-circle"></i> All available libraries have been imported to this campaign.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Assets by Library Card -->
+    {% if assets_by_library %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Assets by Library</h5>
+        </div>
+        <div class="card-body">
+            {% for lib_name, assets in assets_by_library.items() %}
+                <div class="mb-4">
+                    <h6 class="text-primary">
+                        <i class="bi bi-collection"></i> {{ lib_name }}
+                        <span class="badge bg-primary ms-2">{{ assets|length }} assets</span>
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Type</th>
+                                    <th>Initial</th>
+                                    <th>Current</th>
+                                    <th>Change</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ca in assets %}
+                                <tr>
+                                    <td>{{ ca.asset.name }}</td>
+                                    <td><span class="badge bg-secondary">{{ ca.asset.type }}</span></td>
+                                    <td>{{ ca.initial_quantity }}</td>
+                                    <td>
+                                        <span class="{% if ca.current_quantity == 0 %}text-danger{% elif ca.current_quantity < ca.initial_quantity %}text-warning{% else %}text-success{% endif %}">
+                                            {{ ca.current_quantity }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set change = ca.current_quantity - ca.initial_quantity %}
+                                        <span class="{% if change > 0 %}text-success{% elif change < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                            {% if change > 0 %}+{% endif %}{{ change }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Manage Assets Card -->
     <div class="card mb-4">

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.manager_dashboard') }}"><i class="bi bi-kanban"></i> Manager</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Campaign Assets</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.manager_dashboard') }}">
+            ← Back to Dashboard
+            {% if current_user.is_admin %}
+                <span class="badge bg-warning text-dark ms-2">TESTING MODE</span>
+            {% endif %}
+        </a>
+        <div class="navbar-nav">
+            {% if current_user.is_admin %}
+                <a class="nav-link btn btn-outline-danger btn-sm me-2" href="{{ url_for('main.switch_to_admin_view') }}">
+                    <i class="bi bi-arrow-left-right"></i> Return to Admin
+                </a>
+            {% endif %}
+            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="mb-4">
+        <h1>{{ campaign.name }}</h1>
+        <p class="text-muted">{{ campaign.description or 'No description' }}</p>
+    </div>
+
+    <!-- Assets by Library -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Campaign Assets by Library</h5>
+        </div>
+        <div class="card-body">
+            {% if assets_by_library %}
+                {% for library_name, assets in assets_by_library.items() %}
+                <div class="mb-4">
+                    <h6 class="text-primary">
+                        <i class="bi bi-collection"></i> {{ library_name }}
+                        <span class="badge bg-primary">{{ assets|length }} assets</span>
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Type</th>
+                                    <th>Initial</th>
+                                    <th>Current</th>
+                                    <th>Change</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ca in assets %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ ca.asset.name }}</strong>
+                                        {% if ca.asset.is_unique %}
+                                            <span class="badge bg-warning text-dark">Unique</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-primary">{{ ca.asset.type }}</span></td>
+                                    <td>{{ ca.initial_quantity }}</td>
+                                    <td>
+                                        <strong class="{% if ca.current_quantity == 0 %}text-danger{% elif ca.current_quantity < 3 %}text-warning{% endif %}">
+                                            {{ ca.current_quantity }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% set change = ca.current_quantity - ca.initial_quantity %}
+                                        <span class="badge bg-{% if change > 0 %}success{% elif change < 0 %}danger{% else %}secondary{% endif %}">
+                                            {{ "+" if change > 0 }}{{ change }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if ca.current_quantity == 0 %}
+                                            <span class="badge bg-danger">Depleted</span>
+                                        {% elif ca.current_quantity < 3 %}
+                                            <span class="badge bg-warning text-dark">Low Stock</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No assets in this campaign yet.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

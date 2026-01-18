@@ -4,13 +4,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a href="{{ url_for('main.admin_dashboard') }}"><i class="bi bi-gear"></i> Admin</a>
-        </li>
-        <li class="breadcrumb-item">
-            <a href="{{ url_for('main.manage_campaigns') }}">Campaigns</a>
-        </li>
-        <li class="breadcrumb-item">
-            <a href="{{ url_for('main.campaign_detail', campaign_id=campaign.id) }}">{{ campaign.name }}</a>
+            <a href="{{ url_for('main.manager_dashboard') }}"><i class="bi bi-kanban"></i> Manager</a>
         </li>
         <li class="breadcrumb-item active" aria-current="page">Missions</li>
     </ol>
@@ -18,11 +12,21 @@
 {% endblock %}
 
 {% block content %}
+<!-- Use the same content as admin/missions.html but change back link -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('main.campaign_detail', campaign_id=campaign.id) }}">← Back to Campaign</a>
+        <a class="navbar-brand" href="{{ url_for('main.manager_dashboard') }}">
+            ← Back to Dashboard
+            {% if current_user.is_admin %}
+                <span class="badge bg-warning text-dark ms-2">TESTING MODE</span>
+            {% endif %}
+        </a>
         <div class="navbar-nav">
-            <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">Admin Dashboard</a>
+            {% if current_user.is_admin %}
+                <a class="nav-link btn btn-outline-danger btn-sm me-2" href="{{ url_for('main.switch_to_admin_view') }}">
+                    <i class="bi bi-arrow-left-right"></i> Return to Admin
+                </a>
+            {% endif %}
             <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
             <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
         </div>
@@ -99,9 +103,7 @@
                                                     data-date="{{ mission.mission_date.strftime('%Y-%m-%d') }}"
                                                     data-location="{{ mission.location or '' }}"
                                                     data-status="{{ mission.status }}"
-                                                    data-order-index="{{ mission.order_index or 0 }}"
-                                                    data-map-edit-url="{{ mission.map_edit_url or '' }}"
-                                                    data-map-view-url="{{ mission.map_view_url or '' }}">
+                                                    data-order-index="{{ mission.order_index or 0 }}">
                                                 <i class="bi bi-pencil"></i> Edit
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger delete-mission-btn"
@@ -226,9 +228,7 @@
                                                 data-date="{{ mission.mission_date.strftime('%Y-%m-%d') }}"
                                                 data-location="{{ mission.location or '' }}"
                                                 data-status="{{ mission.status }}"
-                                                data-order-index="{{ mission.order_index or 0 }}"
-                                                data-map-edit-url="{{ mission.map_edit_url or '' }}"
-                                                data-map-view-url="{{ mission.map_view_url or '' }}">
+                                                data-order-index="{{ mission.order_index or 0 }}">
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                     </div>
@@ -272,29 +272,6 @@
                         <label for="mission_location" class="form-label">Location</label>
                         <input type="text" class="form-control" id="mission_location" name="location"
                                placeholder="e.g., Altis Airfield, Takistan Mountains">
-                    </div>
-                    
-                    <!-- Tactical Map Links -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-light py-2">
-                            <h6 class="mb-0 small"><i class="bi bi-map"></i> Tactical Map Links (Optional)</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-2">
-                                <label for="mission_map_edit_url" class="form-label small">
-                                    <i class="bi bi-pencil-square"></i> Editorial Link
-                                </label>
-                                <input type="url" class="form-control form-control-sm" id="mission_map_edit_url" name="map_edit_url"
-                                       placeholder="https://maps-beta.plan-ops.fr/...">
-                            </div>
-                            <div class="mb-0">
-                                <label for="mission_map_view_url" class="form-label small">
-                                    <i class="bi bi-eye"></i> View Link
-                                </label>
-                                <input type="url" class="form-control form-control-sm" id="mission_map_view_url" name="map_view_url"
-                                       placeholder="https://maps-beta.plan-ops.fr/...">
-                            </div>
-                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -469,21 +446,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const editMissionModal = new bootstrap.Modal(document.getElementById('editMissionModal'));
     const editMissionForm = document.getElementById('editMissionForm');
     
-    document.querySelectorAll('.edit-mission-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const modal = document.getElementById('editMissionModal');
+    document.querySelectorAll('.edit-mission-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('edit_mission_id').value = this.dataset.id;
+            document.getElementById('edit_mission_name').value = this.dataset.name;
+            document.getElementById('edit_mission_date').value = this.dataset.date;
+            document.getElementById('edit_mission_location').value = this.dataset.location || '';
+            document.getElementById('edit_mission_description').value = this.dataset.description || '';
+            document.getElementById('edit_mission_status').value = this.dataset.status;
             
-            modal.querySelector('[name="mission_id"]').value = this.dataset.id;
-            modal.querySelector('[name="name"]').value = this.dataset.name;
-            modal.querySelector('[name="description"]').value = this.dataset.description || '';
-            modal.querySelector('[name="mission_date"]').value = this.dataset.date;
-            modal.querySelector('[name="location"]').value = this.dataset.location || '';
-            modal.querySelector('[name="status"]').value = this.dataset.status;
-            modal.querySelector('[name="order_index"]').value = this.dataset.orderIndex || '0';
-            modal.querySelector('[name="map_edit_url"]').value = this.dataset.mapEditUrl || '';
-            modal.querySelector('[name="map_view_url"]').value = this.dataset.mapViewUrl || '';
+            // Ensure order_index is set (default to 0 if not present)
+            const orderIndex = this.dataset.orderIndex || '0';
+            document.getElementById('edit_order_index').value = orderIndex;
             
-            new bootstrap.Modal(modal).show();
+            editMissionModal.show();
         });
     });
     

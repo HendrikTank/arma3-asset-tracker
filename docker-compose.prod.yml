@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: arma3-asset-tracker-web
+    restart: unless-stopped
+    environment:
+      # Use environment variables from .env file
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-3600}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-20}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-True}
+      - SESSION_LIFETIME=${SESSION_LIFETIME:-3600}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - MAX_CONTENT_LENGTH=${MAX_CONTENT_LENGTH:-16777216}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Only mount reports directory for persistence
+      - ./reports:/app/reports
+      # Mount logs directory for log persistence
+      - ./logs:/app/logs
+    networks:
+      - traefik_network
+      - internal
+    labels:
+      # Traefik configuration labels
+      - "traefik.enable=true"
+      - "traefik.http.routers.arma3-tracker.rule=Host(`your-domain.com`)"
+      - "traefik.http.routers.arma3-tracker.entrypoints=websecure"
+      - "traefik.http.routers.arma3-tracker.tls=true"
+      - "traefik.http.routers.arma3-tracker.tls.certresolver=letsencrypt"
+      - "traefik.http.services.arma3-tracker.loadbalancer.server.port=5000"
+      # Health check configuration for Traefik
+      - "traefik.http.services.arma3-tracker.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.arma3-tracker.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.arma3-tracker.loadbalancer.healthcheck.timeout=3s"
+      # Security headers (additional to Flask-Talisman)
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      - "traefik.http.routers.arma3-tracker.middlewares=security-headers"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:15
+    container_name: arma3-asset-tracker-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-asset_tracker}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Optional: Add backup directory
+      - ./backups:/backups
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Uncomment to expose PostgreSQL port for external connections (not recommended for production)
+    # ports:
+    #   - "5432:5432"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  # External network for Traefik
+  traefik_network:
+    external: true
+    name: traefik_network
+  # Internal network for app-database communication
+  internal:
+    driver: bridge

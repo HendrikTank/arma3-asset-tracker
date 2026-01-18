@@ -1,13 +1,54 @@
 {% extends "base.html" %}
 
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            {% if current_user.is_admin %}
+                <a href="{{ url_for('main.admin_dashboard') }}"><i class="bi bi-gear"></i> Admin</a>
+            {% else %}
+                <a href="{{ url_for('main.manager_dashboard') }}"><i class="bi bi-kanban"></i> Manager</a>
+            {% endif %}
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.manage_campaigns') if current_user.is_admin else url_for('main.manager_missions') }}">
+                {% if current_user.is_admin %}Campaigns{% else %}Missions{% endif %}
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.campaign_detail', campaign_id=mission.campaign_id) }}">Campaign</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('main.campaign_missions', campaign_id=mission.campaign_id) }}">Missions</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">{{ mission.name }} Events</li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
         <a class="navbar-brand" href="{{ url_for('main.campaign_missions', campaign_id=mission.campaign_id) }}">
             ← Back to Missions
+            {% if current_user.is_admin %}
+                {% if session.get('test_manager_view') %}
+                    <span class="badge bg-warning text-dark ms-2">TESTING MODE</span>
+                {% endif %}
+            {% endif %}
         </a>
         <div class="navbar-nav">
-            <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">Admin Dashboard</a>
+            {% if current_user.is_admin %}
+                {% if session.get('test_manager_view') %}
+                    <a class="nav-link btn btn-outline-danger btn-sm me-2" href="{{ url_for('main.switch_to_admin_view') }}">
+                        <i class="bi bi-arrow-left-right"></i> Return to Admin
+                    </a>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">Admin Dashboard</a>
+                {% endif %}
+            {% else %}
+                <a class="nav-link" href="{{ url_for('main.manager_dashboard') }}">Manager Dashboard</a>
+            {% endif %}
             <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
         </div>
     </div>

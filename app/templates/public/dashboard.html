@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">
+            <i class="bi bi-house-door"></i> Dashboard
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
@@ -22,50 +32,329 @@
 {% if campaign %}
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">{{ campaign.name }}</h5>
-            <p class="card-text">{{ campaign.description or 'No description' }}</p>
-            <p class="card-text">
-                <small class="text-muted">
-                    Started: {{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'Not set' }}
-                </small>
-            </p>
-        </div>
-    </div>
-
-    <h3>Current Asset Pool</h3>
-    <div class="row">
-        {% for asset in assets %}
-        <div class="col-md-4">
-            <div class="card asset-card">
-                <div class="card-body">
-                    <h6 class="card-title">{{ asset.name }}</h6>
-                    <p class="card-text mb-1">
-                        <span class="badge bg-primary">{{ asset.type }}</span>
-                        {% if asset.category %}
-                            <span class="badge bg-secondary">{{ asset.category }}</span>
-                        {% endif %}
-                    </p>
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="card-title">{{ campaign.name }}</h5>
+                    <p class="card-text">{{ campaign.description or 'No description' }}</p>
                     <p class="card-text">
-                        <strong>Quantity:</strong> {{ asset.current_quantity }}
+                        <small class="text-muted">
+                            Started: {{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'Not set' }}
+                        </small>
                     </p>
                 </div>
+                {% if campaign.map_view_url %}
+                <div>
+                    <a href="{{ campaign.map_view_url }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="bi bi-map"></i> View Tactical Map
+                    </a>
+                </div>
+                {% endif %}
             </div>
+            {% if current_user.is_authenticated and current_user.is_manager and campaign.map_edit_url %}
+            <div class="mt-2">
+                <a href="{{ campaign.map_edit_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-pencil-square"></i> Edit Map
+                </a>
+            </div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="col-12">
-            <div class="alert alert-info">No assets in the current campaign.</div>
-        </div>
-        {% endfor %}
     </div>
 
-    <div class="mt-4">
-        <a href="{{ url_for('main.timeline') }}" class="btn btn-primary">
-            <i class="bi bi-calendar-event"></i> View Timeline
-        </a>
+    <!-- Tabs for Asset Pool and Timeline -->
+    {% set total_events = missions|sum(attribute='event_count') %}
+    <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="assets-tab" data-bs-toggle="tab" data-bs-target="#assets" type="button" role="tab">
+                <i class="bi bi-box-seam"></i> Current Asset Pool
+                <span class="badge bg-primary ms-2">{{ assets|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab">
+                <i class="bi bi-clock-history"></i> Campaign Timeline
+                <span class="badge bg-secondary ms-2">{{ missions|length }} missions</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="dashboardTabContent">
+        <!-- Asset Pool Tab -->
+        <div class="tab-pane fade show active" id="assets" role="tabpanel">
+            {% if assets %}
+                <div class="row">
+                    {% for asset in assets %}
+                    <div class="col-md-4 col-lg-3">
+                        <div class="card asset-card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ asset.name }}</h6>
+                                <p class="card-text mb-1">
+                                    <span class="badge bg-primary">{{ asset.type }}</span>
+                                    {% if asset.category %}
+                                        <span class="badge bg-secondary">{{ asset.category }}</span>
+                                    {% endif %}
+                                </p>
+                                <p class="card-text">
+                                    <strong>Quantity:</strong> 
+                                    <span class="fs-5 {% if asset.current_quantity == 0 %}text-danger{% elif asset.current_quantity < 5 %}text-warning{% else %}text-success{% endif %}">
+                                        {{ asset.current_quantity }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No assets in the pool yet.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Timeline Tab -->
+        <div class="tab-pane fade" id="timeline" role="tabpanel">
+            {% if missions %}
+                <div class="row">
+                    <div class="col-lg-8">
+                        <!-- Missions Timeline -->
+                        <div class="timeline-container">
+                            {% for mission in missions %}
+                            <div class="timeline-item mb-4">
+                                <div class="timeline-marker">
+                                    <div class="marker-dot bg-{% if mission.status == 'completed' %}success{% elif mission.status == 'in_progress' %}warning{% elif mission.status == 'cancelled' %}danger{% else %}primary{% endif %}"></div>
+                                    <div class="marker-line"></div>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="card mission-card">
+                                        <div class="card-header {% if mission.status == 'completed' %}bg-success text-white{% elif mission.status == 'in_progress' %}bg-warning{% elif mission.status == 'cancelled' %}bg-secondary text-white{% else %}bg-light{% endif %}">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">
+                                                    <i class="bi bi-flag-fill"></i> {{ mission.name }}
+                                                </h6>
+                                                <div>
+                                                    {% if mission.map_view_url %}
+                                                    <a href="{{ mission.map_view_url }}" target="_blank" class="btn btn-sm btn-light" title="View Tactical Map">
+                                                        <i class="bi bi-map"></i>
+                                                    </a>
+                                                    {% endif %}
+                                                    {% if current_user.is_authenticated and current_user.is_manager and mission.map_edit_url %}
+                                                    <a href="{{ mission.map_edit_url }}" target="_blank" class="btn btn-sm btn-outline-light" title="Edit Map">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </a>
+                                                    {% endif %}
+                                                    <span class="badge {% if mission.status == 'completed' %}bg-light text-dark{% else %}bg-secondary{% endif %} ms-2">
+                                                        {{ mission.status|title }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="collapse" id="mission-{{ mission.id }}">
+                                            <div class="card-body">
+                                                {% if mission.events %}
+                                                    <div class="events-list">
+                                                        {% for event in mission.events %}
+                                                        <div class="event-item mb-3 p-3 border rounded">
+                                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                <div>
+                                                                    <h6 class="mb-1">{{ event.title }}</h6>
+                                                                    <small class="text-muted">
+                                                                        <i class="bi bi-clock"></i> {{ event.date }}
+                                                                    </small>
+                                                                </div>
+                                                                <span class="badge bg-{% if event.type == 'combat' %}danger{% elif event.type == 'logistics' %}success{% elif event.type == 'training' %}info{% else %}secondary{% endif %}">
+                                                                    {{ event.type|title }}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            {% if event.description %}
+                                                            <p class="mb-2 text-muted">{{ event.description }}</p>
+                                                            {% endif %}
+                                                            
+                                                            {% if event.asset_changes %}
+                                                            <div class="mt-2">
+                                                                <strong class="d-block mb-2">Asset Changes:</strong>
+                                                                <div class="asset-changes">
+                                                                    {% for change in event.asset_changes %}
+                                                                    <span class="badge bg-light text-dark me-2 mb-1">
+                                                                        <span class="badge bg-secondary">{{ change.asset_type }}</span>
+                                                                        {{ change.asset_name }}:
+                                                                        <span class="{% if change.quantity_change > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                                                            {{ "+" if change.quantity_change > 0 }}{{ change.quantity_change }}
+                                                                        </span>
+                                                                    </span>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            </div>
+                                                            {% endif %}
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <p class="text-muted mb-0">No events recorded for this mission.</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- Summary Stats -->
+                        <div class="card sticky-top" style="top: 20px;">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Timeline Stats</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-2"><strong>Total Missions:</strong> {{ missions|length }}</p>
+                                <p class="mb-2"><strong>Total Events:</strong> {{ total_events }}</p>
+                                
+                                {% set completed_missions = missions|selectattr('status', 'equalto', 'completed')|list|length %}
+                                {% set in_progress_missions = missions|selectattr('status', 'equalto', 'in_progress')|list|length %}
+                                
+                                <div class="mt-3">
+                                    <h6>Mission Status:</h6>
+                                    <ul class="list-unstyled">
+                                        {% if completed_missions > 0 %}
+                                        <li class="mb-2">
+                                            <span class="badge bg-success">Completed</span> 
+                                            <span class="ms-2">{{ completed_missions }}</span>
+                                        </li>
+                                        {% endif %}
+                                        {% if in_progress_missions > 0 %}
+                                        <li class="mb-2">
+                                            <span class="badge bg-warning">In Progress</span> 
+                                            <span class="ms-2">{{ in_progress_missions }}</span>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle"></i> Click on a mission to view its events
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No missions recorded yet for this campaign.
+                </div>
+            {% endif %}
+        </div>
     </div>
 {% else %}
-    <div class="alert alert-warning">
-        No active campaign. Please contact an administrator.
+    <div class="alert alert-info">
+        No active campaign currently. 
+        {% if current_user.is_authenticated and current_user.is_manager %}
+            <a href="{{ url_for('main.manage_campaigns') }}" class="alert-link">Create one now</a>.
+        {% endif %}
     </div>
 {% endif %}
+
+<style>
+    .asset-card { 
+        margin-bottom: 20px; 
+        transition: transform 0.2s;
+    }
+    .asset-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* Timeline styles */
+    .timeline-container {
+        position: relative;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 40px;
+    }
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 20px;
+        height: 100%;
+    }
+    .marker-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        box-shadow: 0 0 0 2px currentColor;
+    }
+    .marker-line {
+        position: absolute;
+        left: 7px;
+        top: 20px;
+        width: 2px;
+        height: calc(100% - 20px);
+        background-color: #dee2e6;
+    }
+    .timeline-item:last-child .marker-line {
+        display: none;
+    }
+    .timeline-content {
+        padding-bottom: 20px;
+    }
+    
+    /* Mission card styles */
+    .mission-card {
+        transition: all 0.3s;
+    }
+    .mission-card .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .mission-card .card-header:hover {
+        background-color: #e9ecef;
+    }
+    .collapse-icon {
+        transition: transform 0.3s;
+        display: inline-block;
+    }
+    .mission-card .card-header[aria-expanded="true"] .collapse-icon {
+        transform: rotate(180deg);
+    }
+    
+    /* Event item styles */
+    .event-item {
+        background-color: #f8f9fa;
+    }
+    .event-item:hover {
+        background-color: #e9ecef;
+    }
+    .asset-changes {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    /* Tab styling */
+    .nav-tabs .nav-link {
+        color: #495057;
+    }
+    .nav-tabs .nav-link.active {
+        font-weight: 600;
+    }
+</style>
+
+<script>
+// Add rotation animation to collapse icons
+document.addEventListener('DOMContentLoaded', function() {
+    const missionHeaders = document.querySelectorAll('.mission-card .card-header');
+    missionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+        });
+    });
+});
+</script>
 {% endblock %}

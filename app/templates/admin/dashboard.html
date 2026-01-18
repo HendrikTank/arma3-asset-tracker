@@ -1,110 +1,189 @@
 {% extends "base.html" %}
 
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">
+            <i class="bi bi-gear"></i> Admin Dashboard
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}">Arma 3 Asset Tracker - Admin</a>
-        <div class="navbar-nav">
+        <a class="navbar-brand" href="#">
+            Admin Dashboard
+            {% if current_user.is_admin %}
+                <span class="badge bg-danger ms-2">ADMIN</span>
+            {% elif current_user.is_manager %}
+                <span class="badge bg-primary ms-2">MANAGER</span>
+            {% endif %}
+        </a>
+        <div class="navbar-nav ms-auto">
+            <span class="navbar-text me-3">
+                <a href="{{ url_for('main.user_profile') }}"><i class="bi bi-person-circle"></i> {{ current_user.username }}</a>
+            </span>
             <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
             <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
         </div>
     </div>
 </nav>
 
-<h1>Admin Dashboard</h1>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <h1>Welcome, {{ current_user.username }}!</h1>
+            <p class="text-muted">
+                {% if current_user.is_admin %}
+                    You have <strong>full administrative access</strong> to manage all campaigns, libraries, and system settings.
+                {% elif current_user.is_manager %}
+                    You can <strong>manage the active campaign</strong> including missions, events, and assets.
+                {% endif %}
+            </p>
+        </div>
+    </div>
 
-<!-- Add this to your admin dashboard -->
-<div class="row mt-4">
-    <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-box-seam display-4 text-primary mb-3"></i>
-                <h5 class="card-title">Assets Library</h5>
-                <p class="card-text">Manage vehicles, weapons, equipment, and other assets.</p>
-                <a href="{{ url_for('main.manage_assets') }}" class="btn btn-primary">Manage Assets</a>
+    {% if active_campaign %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-star-fill"></i> Active Campaign
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h4>{{ active_campaign.name }}</h4>
+                    <p>{{ active_campaign.description or 'No description' }}</p>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('main.campaign_detail', campaign_id=active_campaign.id) }}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-gear"></i> Manage Campaign
+                        </a>
+                        <a href="{{ url_for('main.campaign_missions', campaign_id=active_campaign.id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-map"></i> Missions
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-flag display-4 text-success mb-3"></i>
-                <h5 class="card-title">Campaigns</h5>
-                <p class="card-text">Create and manage campaigns, set active campaign.</p>
-                <a href="{{ url_for('main.manage_campaigns') }}" class="btn btn-success">Manage Campaigns</a>
+    {% endif %}
+
+    <div class="row">
+        <!-- Manager & Admin Options -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-clipboard-data display-4 text-primary"></i>
+                    <h5 class="card-title mt-3">Reports</h5>
+                    <p class="card-text">View campaign reports and analytics</p>
+                    <a href="{{ url_for('main.reports_dashboard') }}" class="btn btn-primary">
+                        View Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.is_admin %}
+        <!-- Admin Only Options -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-flag display-4 text-success"></i>
+                    <h5 class="card-title mt-3">Campaigns</h5>
+                    <p class="card-text">Create and manage all campaigns</p>
+                    <a href="{{ url_for('main.manage_campaigns') }}" class="btn btn-success">
+                        Manage Campaigns
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-collection display-4 text-info"></i>
+                    <h5 class="card-title mt-3">Asset Libraries</h5>
+                    <p class="card-text">Manage asset libraries and templates</p>
+                    <a href="{{ url_for('main.manage_libraries') }}" class="btn btn-info">
+                        Manage Libraries
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-4 text-warning"></i>
+                    <h5 class="card-title mt-3">User Management</h5>
+                    <p class="card-text">Manage user accounts and permissions</p>
+                    <a href="{{ url_for('main.manage_users') }}" class="btn btn-warning">
+                        Manage Users
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if current_user.is_admin %}
+    <!-- All Campaigns List (Admin Only) -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">All Campaigns</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Start Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for campaign in campaigns %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ campaign.name }}</strong>
+                                        {% if campaign.is_active %}
+                                            <span class="badge bg-success ms-2">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if campaign.is_closed %}
+                                            <span class="badge bg-secondary">Closed</span>
+                                        {% elif campaign.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('main.campaign_detail', campaign_id=campaign.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-file-earmark-text display-4 text-info mb-3"></i>
-                <h5 class="card-title">Reports</h5>
-                <p class="card-text">Generate and download campaign reports.</p>
-                <a href="#" class="btn btn-info">View Reports</a>
-            </div>
-        </div>
-    </div>
+    {% endif %}
 </div>
-
-<h2 class="mt-4">Active Campaigns</h2>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Start Date</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for campaign in campaigns %}
-        <tr>
-            <td>{{ campaign.name }}</td>
-            <td>
-                {% if campaign.is_active %}
-                    <span class="badge bg-success">Active</span>
-                {% elif campaign.is_closed %}
-                    <span class="badge bg-secondary">Closed</span>
-                {% else %}
-                    <span class="badge bg-warning">Inactive</span>
-                {% endif %}
-            </td>
-            <td>{{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'N/A' }}</td>
-            <td>
-                <a href="{{ url_for('main.campaign_detail', campaign_id=campaign.id) }}" class="btn btn-sm btn-info">View</a>
-                {% if not campaign.is_closed %}
-                    <button class="btn btn-sm btn-success set-active-btn" data-id="{{ campaign.id }}">Set Active</button>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.set-active-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const campaignId = this.dataset.id;
-            if (confirm('Set this campaign as active?')) {
-                fetch(`/admin/campaign/${campaignId}/set-active`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    }
-                });
-            }
-        });
-    });
-});
-</script>
 {% endblock %}
