@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -30,6 +31,17 @@ def create_app(config_name=None):
     
     from app.config import config
     app.config.from_object(config[config_name])
+    
+    # Apply ProxyFix middleware for reverse proxy (Traefik)
+    # This tells Flask to trust X-Forwarded-* headers from the proxy
+    if app.config['ENV'] == 'production':
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app, 
+            x_for=1,      # Trust X-Forwarded-For
+            x_proto=1,    # Trust X-Forwarded-Proto (needed for CSRF with HTTPS)
+            x_host=1,     # Trust X-Forwarded-Host
+            x_port=1      # Trust X-Forwarded-Port
+        )
     
     # Initialize extensions
     db.init_app(app)
