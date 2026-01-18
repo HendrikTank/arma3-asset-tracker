@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request, flash, redirect, url_for, send_file, make_response, session
+from flask import Blueprint, render_template, jsonify, request, flash, redirect, url_for, send_file, make_response, session, current_app
 from flask_login import login_required, current_user
 from app import db
 from app.models import Campaign, Asset, CampaignAsset, Mission, Event, AssetChange, Log, User, AssetLibrary, CampaignLibraryImport
@@ -991,7 +991,8 @@ def update_asset_quantity():
         db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        current_app.logger.exception("Error updating asset quantity")
+        return jsonify({'success': False, 'error': 'An internal error has occurred.'}), 400
 
 @main.route('/api/remove-asset-from-campaign', methods=['POST'])
 @login_required
@@ -1010,7 +1011,8 @@ def remove_asset_from_campaign():
         
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        current_app.logger.exception("Error removing asset from campaign")
+        return jsonify({'success': False, 'error': 'An internal error has occurred.'}), 400
 
 # Asset Library Management Routes
 @main.route('/admin/libraries')
@@ -1043,7 +1045,8 @@ def create_library():
         db.session.commit()
         flash(f'Library "{library.name}" created successfully!', 'success')
     except Exception as e:
-        flash(f'Error creating library: {str(e)}', 'error')
+        current_app.logger.exception("Error creating asset library")
+        flash('Error creating library. Please try again or contact support.', 'error')
     
     return redirect(url_for('main.manage_libraries'))
 
