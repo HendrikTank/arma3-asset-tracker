@@ -241,6 +241,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.add_event') }}" id="addEventForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="mission_id" value="{{ mission.id }}">
                 <input type="hidden" name="campaign_id" value="{{ mission.campaign_id }}">
                 
@@ -344,6 +345,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.edit_event') }}" id="editEventForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="event_id" id="edit_event_id">
                 
                 <div class="modal-body">
@@ -402,6 +404,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.add_asset_change') }}" id="addAssetChangeForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="event_id" id="asset_change_event_id">
                 
                 <div class="modal-body">
@@ -463,6 +466,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="{{ url_for('main.delete_event') }}" id="deleteEventForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="event_id" id="delete_event_id">
                     <button type="submit" class="btn btn-danger">Delete Event</button>
                 </form>
@@ -485,6 +489,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="{{ url_for('main.delete_asset_change') }}" id="deleteAssetChangeForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="change_id" id="delete_change_id">
                     <button type="submit" class="btn btn-danger">Delete Change</button>
                 </form>

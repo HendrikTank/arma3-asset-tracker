@@ -49,6 +49,7 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('main.create_user') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label for="username" class="form-label">Username *</label>
@@ -159,6 +160,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.edit_user') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="user_id" id="edit_user_id">
                 <div class="modal-body">
                     <p>Editing user: <strong id="edit_username"></strong></p>
@@ -188,6 +190,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.reset_user_password') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="user_id" id="reset_user_id">
                 <div class="modal-body">
                     <p>Resetting password for: <strong id="reset_username"></strong></p>
@@ -215,6 +218,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.delete_user') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="user_id" id="delete_user_id">
                 <div class="modal-body">
                     <p>Are you sure you want to delete user: <strong id="delete_username"></strong>?</p>

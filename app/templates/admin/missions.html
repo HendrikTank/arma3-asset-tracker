@@ -252,6 +252,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.add_mission') }}" id="addMissionForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="campaign_id" value="{{ campaign.id }}">
                 
                 <div class="modal-body">
@@ -339,6 +340,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.edit_mission') }}" id="editMissionForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="mission_id" id="edit_mission_id">
                 
                 <div class="modal-body">
@@ -406,6 +408,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="{{ url_for('main.delete_mission') }}" id="deleteMissionForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="mission_id" id="delete_mission_id">
                     <button type="submit" class="btn btn-danger">Delete Mission</button>
                 </form>

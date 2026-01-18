@@ -33,6 +33,7 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('main.manage_campaigns') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="row">
                     <div class="col-md-8 mb-3">
                         <label for="name" class="form-label">Campaign Name *</label>
@@ -241,6 +242,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form id="setActiveForm" method="POST" action="{{ url_for('main.set_campaign_active') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="active_campaign_id" name="campaign_id">
                     <button type="submit" class="btn btn-success">Set as Active</button>
                 </form>
@@ -272,6 +274,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form id="closeCampaignForm" method="POST" action="{{ url_for('main.close_campaign') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="close_campaign_id" name="campaign_id">
                     <button type="submit" class="btn btn-danger">Close Campaign</button>
                 </form>

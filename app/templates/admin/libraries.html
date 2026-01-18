@@ -55,6 +55,7 @@
                         <form method="POST" action="{{ url_for('main.delete_library', library_id=library.id) }}" 
                               style="display: inline;" 
                               onsubmit="return confirm('Delete this library? This cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-outline-danger">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -82,6 +83,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('main.create_library') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="name" class="form-label">Library Name *</label>

@@ -134,6 +134,7 @@
             
             {% if all_libraries|length > imported_library_ids|length %}
                 <form method="POST" action="{{ url_for('main.import_library_to_campaign', campaign_id=campaign.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="row align-items-end">
                         <div class="col-md-8">
                             <label for="library_id" class="form-label">Import New Library</label>
@@ -339,6 +340,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form id="setActiveForm" method="POST" action="{{ url_for('main.set_campaign_active') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="active_campaign_id" name="campaign_id" value="{{ campaign.id }}">
                     <button type="submit" class="btn btn-success">Set as Active</button>
                 </form>
@@ -364,6 +366,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form id="closeCampaignForm" method="POST" action="{{ url_for('main.close_campaign') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" id="close_campaign_id" name="campaign_id" value="{{ campaign.id }}">
                     <button type="submit" class="btn btn-danger">Close Campaign</button>
                 </form>

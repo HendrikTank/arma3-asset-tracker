@@ -51,6 +51,7 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('main.add_asset_to_library', library_id=library.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="name" class="form-label">Asset Name *</label>
@@ -184,6 +185,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <form method="POST" action="{{ url_for('main.edit_library_asset', library_id=library.id, asset_id=asset.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <div class="modal-body">
                                                 <div class="mb-3">
                                                     <label for="edit_name{{ asset.id }}" class="form-label">Asset Name *</label>
@@ -296,6 +298,7 @@
 
                 <!-- Assets List -->
                 <form id="importAssetsForm" method="POST" action="{{ url_for('main.import_assets_to_library', library_id=library.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div id="importAssetsList" style="max-height: 400px; overflow-y: auto;">
                         {% for lib in all_libraries %}
                             {% if lib.id != library.id %}
@@ -359,6 +362,7 @@
 
 <!-- Delete confirmation form -->
 <form id="deleteAssetForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <input type="hidden" name="asset_id" id="deleteAssetId">
 </form>
 
