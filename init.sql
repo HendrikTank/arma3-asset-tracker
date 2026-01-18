@@ -1,13 +1,3 @@
--- Drop existing tables if they exist (for clean setup)
-DROP TABLE IF EXISTS logs CASCADE;
-DROP TABLE IF EXISTS asset_changes CASCADE;
-DROP TABLE IF EXISTS events CASCADE;
-DROP TABLE IF EXISTS missions CASCADE;
-DROP TABLE IF EXISTS campaign_libraries CASCADE;
-DROP TABLE IF EXISTS campaigns CASCADE;
-DROP TABLE IF EXISTS assets CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(80) UNIQUE NOT NULL,

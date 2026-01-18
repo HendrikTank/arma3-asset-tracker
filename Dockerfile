@@ -50,4 +50,7 @@ CMD ["waitress-serve", \
     "--connection-limit=1000", \
     "--cleanup-interval=30", \
     "--log-untrusted-proxy-headers", \
+    "--trusted-proxy=*", \
+    "--trusted-proxy-headers=x-forwarded-for x-forwarded-host x-forwarded-proto x-forwarded-port", \
+    "--clear-untrusted-proxy-headers", \
     "wsgi:app"]
