@@ -4,7 +4,7 @@ Flask-Login==0.6.3
 Flask-WTF==1.1.1
 psycopg2-binary==2.9.7
 gunicorn==21.2.0
-waitress==2.1.2
+waitress==3.0.1
 python-dotenv==1.0.0
 sqlalchemy==2.0.19
 werkzeug==3.0.1
