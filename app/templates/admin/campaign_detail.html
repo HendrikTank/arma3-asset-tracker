@@ -374,22 +374,81 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const setActiveModal = new bootstrap.Modal(document.getElementById('setActiveModal'));
     const closeCampaignModal = new bootstrap.Modal(document.getElementById('closeCampaignModal'));
+    const setActiveForm = document.getElementById('setActiveForm');
+    const closeCampaignForm = document.getElementById('closeCampaignForm');
     
     // Set Active Campaign
-    document.querySelector('.set-active-btn')?.addEventListener('click', function() {
-        setActiveModal.show();
-    });
+    const setActiveBtn = document.querySelector('.set-active-btn');
+    if (setActiveBtn) {
+        setActiveBtn.addEventListener('click', function() {
+            setActiveModal.show();
+        });
+    }
     
     // Close Campaign
-    document.querySelector('.close-campaign-btn')?.addEventListener('click', function() {
-        closeCampaignModal.show();
-    });
+    const closeCampaignBtn = document.querySelector('.close-campaign-btn');
+    if (closeCampaignBtn) {
+        closeCampaignBtn.addEventListener('click', function() {
+            closeCampaignModal.show();
+        });
+    }
+    
+    // Handle Set Active form submission
+    if (setActiveForm) {
+        setActiveForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error setting campaign active');
+            });
+        });
+    }
+    
+    // Handle Close Campaign form submission
+    if (closeCampaignForm) {
+        closeCampaignForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error closing campaign');
+            });
+        });
+    }
     
     // Add Asset to Campaign
     document.getElementById('add_asset_btn').addEventListener('click', function() {
