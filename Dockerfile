@@ -42,21 +42,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 5000
 
 # Use waitress for production WSGI server with optimized settings
-CMD ["waitress-serve", \
-    "--host=0.0.0.0", \
-    "--port=5000", \
-    "--threads=4", \
-    "--url_scheme=https", \
-    "--channel-timeout=60", \
-    "--connection-limit=1000", \
-    "--cleanup-interval=30", \
-    "--log-untrusted-proxy-headers", \
-    "--trusted-proxy=*", \
-    "--trusted-proxy-headers=x-forwarded-for", \
-    "--trusted-proxy-headers=x-forwarded-host", \
-    "--trusted-proxy-headers=x-forwarded-proto", \
-    "--trusted-proxy-headers=x-forwarded-port", \
-    "--clear-untrusted-proxy-headers", \
-    "--asyncore-use-poll", \
-    "--channel-request-lookahead=10", \
-    "wsgi:app"]
+CMD ["waitress-serve", "--host=0.0.0.0", "--port=5000", "--threads=4", "--url-scheme=https", "--channel-timeout=60", "--connection-limit=1000", "--cleanup-interval=30", "--log-untrusted-proxy-headers", "--trusted-proxy=*", "--trusted-proxy-headers=x-forwarded-for", "--trusted-proxy-headers=x-forwarded-host", "--trusted-proxy-headers=x-forwarded-proto", "--trusted-proxy-headers=x-forwarded-port", "--clear-untrusted-proxy-headers", "--asyncore-use-poll", "--channel-request-lookahead=10", "wsgi:app"]
