@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.manage_campaigns') }}">← Back to Campaigns</a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h1>{{ campaign.name }}</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Campaign Info Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Campaign Information</h5>
+            <div>
+                {% if campaign.is_active %}
+                    <span class="badge bg-success">Active Campaign</span>
+                {% elif campaign.is_closed %}
+                    <span class="badge bg-secondary">Closed</span>
+                {% else %}
+                    <span class="badge bg-warning">Inactive</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h6>Description</h6>
+                    <p>{{ campaign.description or 'No description provided.' }}</p>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6>Dates</h6>
+                            <p>
+                                <strong>Start:</strong> {{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'Not set' }}<br>
+                                {% if campaign.end_date %}
+                                    <strong>End:</strong> {{ campaign.end_date.strftime('%Y-%m-%d') }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Statistics</h6>
+                            <p>
+                                <strong>Created:</strong> {{ campaign.created_at.strftime('%Y-%m-%d') if campaign.created_at else 'N/A' }}<br>
+                                <strong>Assets:</strong> {{ campaign_assets|length }} items
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Actions</h6>
+                    <div class="d-grid gap-2">
+                        {% if not campaign.is_closed %}
+                            {% if not campaign.is_active %}
+                                <button class="btn btn-success set-active-btn" 
+                                        data-id="{{ campaign.id }}">
+                                    Set as Active Campaign
+                                </button>
+                            {% endif %}
+                            
+                            <a href="{{ url_for('main.campaign_missions', campaign_id=campaign.id) }}" 
+                                class="btn btn-primary">
+                                <i class="bi bi-flag"></i> Manage Missions
+                            </a>
+                            
+                            <button class="btn btn-danger close-campaign-btn" 
+                                    data-id="{{ campaign.id }}"
+                                    data-name="{{ campaign.name }}">
+                                <i class="bi bi-lock"></i> Close Campaign
+                            </button>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('main.generate_campaign_report', campaign_id=campaign.id) }}" 
+                           class="btn btn-outline-success">
+                            <i class="bi bi-download"></i> Download Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Assets Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Manage Campaign Assets</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">
+                Add assets from the library to this campaign and set initial quantities.
+            </p>
+            
+            <!-- Add Asset Form -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <select class="form-select" id="asset_select">
+                            <option value="">Select an asset to add...</option>
+                            {% for asset in assets %}
+                                {% if asset.id not in campaign_asset_ids %}
+                                <option value="{{ asset.id }}" 
+                                        data-name="{{ asset.name }}"
+                                        data-type="{{ asset.type }}"
+                                        data-category="{{ asset.category or '' }}">
+                                    {{ asset.name }} ({{ asset.type }}{% if asset.category %} - {{ asset.category }}{% endif %})
+                                </option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="number" class="form-control" id="asset_quantity" 
+                               placeholder="Qty" value="1" min="1" style="max-width: 100px;">
+                        <button class="btn btn-primary" id="add_asset_btn">
+                            <i class="bi bi-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Assets Table -->
+            <h6>Current Assets in Campaign</h6>
+            {% if campaign_assets %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Initial Qty</th>
+                            <th>Current Qty</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ca in campaign_assets %}
+                        <tr>
+                            <td>
+                                <strong>{{ ca.asset.name }}</strong>
+                                {% if ca.asset.is_unique %}
+                                    <span class="badge bg-warning ms-1">Unique</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ ca.asset.type }}</span>
+                            </td>
+                            <td>
+                                {% if ca.asset.category %}
+                                    <span class="badge bg-secondary">{{ ca.asset.category }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm initial-qty" 
+                                       data-id="{{ ca.id }}" value="{{ ca.initial_quantity }}" 
+                                       style="width: 80px;" min="0">
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if ca.current_quantity > 0 %}success{% else %}danger{% endif %}">
+                                    {{ ca.current_quantity }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger remove-asset-btn" 
+                                        data-id="{{ ca.id }}"
+                                        data-name="{{ ca.asset.name }}">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No assets in this campaign yet. Add assets from the library above.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modals (reuse from campaigns.html or include) -->
+<div class="modal fade" id="setActiveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Set Campaign Active</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Set this campaign as active?</p>
+                <p class="text-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    This will deactivate the current active campaign.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="setActiveForm" method="POST" action="{{ url_for('main.set_campaign_active') }}">
+                    <input type="hidden" id="active_campaign_id" name="campaign_id" value="{{ campaign.id }}">
+                    <button type="submit" class="btn btn-success">Set as Active</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="closeCampaignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Close Campaign</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to close <strong>{{ campaign.name }}</strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>This action cannot be undone!</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="closeCampaignForm" method="POST" action="{{ url_for('main.close_campaign') }}">
+                    <input type="hidden" id="close_campaign_id" name="campaign_id" value="{{ campaign.id }}">
+                    <button type="submit" class="btn btn-danger">Close Campaign</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const setActiveModal = new bootstrap.Modal(document.getElementById('setActiveModal'));
+    const closeCampaignModal = new bootstrap.Modal(document.getElementById('closeCampaignModal'));
+    
+    // Set Active Campaign
+    document.querySelector('.set-active-btn')?.addEventListener('click', function() {
+        setActiveModal.show();
+    });
+    
+    // Close Campaign
+    document.querySelector('.close-campaign-btn')?.addEventListener('click', function() {
+        closeCampaignModal.show();
+    });
+    
+    // Add Asset to Campaign
+    document.getElementById('add_asset_btn').addEventListener('click', function() {
+        const assetSelect = document.getElementById('asset_select');
+        const assetId = assetSelect.value;
+        const quantity = document.getElementById('asset_quantity').value || 1;
+        
+        if (!assetId) {
+            alert('Please select an asset');
+            return;
+        }
+        
+        const assetName = assetSelect.options[assetSelect.selectedIndex].dataset.name;
+        
+        fetch('{{ url_for("main.add_asset_to_campaign", campaign_id=campaign.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                asset_id: parseInt(assetId),
+                quantity: parseInt(quantity)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding asset');
+        });
+    });
+    
+    // Update initial quantity
+    document.querySelectorAll('.initial-qty').forEach(input => {
+        input.addEventListener('change', function() {
+            const libraryId = this.dataset.id;
+            const newQty = this.value;
+            
+            fetch('/api/update-asset-quantity', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    library_id: libraryId,
+                    quantity: parseInt(newQty)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Error updating quantity');
+                }
+            });
+        });
+    });
+    
+    // Remove asset from campaign
+    document.querySelectorAll('.remove-asset-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const libraryId = this.dataset.id;
+            const assetName = this.dataset.name;
+            
+            if (confirm(`Remove "${assetName}" from campaign?`)) {
+                fetch('/api/remove-asset-from-campaign', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        library_id: libraryId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

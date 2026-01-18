@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.campaign_detail', campaign_id=campaign.id) }}">← Back to Campaign</a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">Admin Dashboard</a>
+            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Manage Missions</h1>
+            <p class="text-muted">Campaign: <strong>{{ campaign.name }}</strong></p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMissionModal">
+            <i class="bi bi-plus-circle"></i> Add Mission
+        </button>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Missions Timeline View -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Mission Timeline</h5>
+        </div>
+        <div class="card-body">
+            {% if missions %}
+                <div class="timeline">
+                    {% for mission in missions|sort(attribute='mission_date') %}
+                    <div class="timeline-item mb-4">
+                        <div class="timeline-marker">
+                            <div class="marker-dot {% if mission.status == 'completed' %}bg-success{% elif mission.status == 'in_progress' %}bg-warning{% elif mission.status == 'cancelled' %}bg-danger{% else %}bg-primary{% endif %}"></div>
+                            <div class="marker-line"></div>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h5 class="card-title mb-1">
+                                                {{ mission.name }}
+                                                <span class="badge bg-{% if mission.status == 'completed' %}success{% elif mission.status == 'in_progress' %}warning{% elif mission.status == 'cancelled' %}danger{% else %}info{% endif %} ms-2">
+                                                    {{ mission.status|replace('_', ' ')|title }}
+                                                </span>
+                                            </h5>
+                                            <p class="text-muted mb-2">
+                                                <i class="bi bi-calendar-event"></i> 
+                                                {{ mission.mission_date.strftime('%Y-%m-%d') }}
+                                                {% if mission.location %}
+                                                    • <i class="bi bi-geo-alt"></i> {{ mission.location }}
+                                                {% endif %}
+                                            </p>
+                                            {% if mission.description %}
+                                                <p class="card-text">{{ mission.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('main.mission_events', mission_id=mission.id) }}" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="bi bi-activity"></i> Manage Events
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-secondary edit-mission-btn"
+                                                    data-id="{{ mission.id }}"
+                                                    data-name="{{ mission.name }}"
+                                                    data-description="{{ mission.description or '' }}"
+                                                    data-date="{{ mission.mission_date.strftime('%Y-%m-%d') }}"
+                                                    data-location="{{ mission.location or '' }}"
+                                                    data-status="{{ mission.status }}"
+                                                    data-order-index="{{ mission.order_index or 0 }}">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-mission-btn"
+                                                    data-id="{{ mission.id }}"
+                                                    data-name="{{ mission.name }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Events Summary -->
+                                    {% if mission.events %}
+                                    <div class="mt-3">
+                                        <h6 class="mb-2">Events ({{ mission.events|length }})</h6>
+                                        <div class="row">
+                                            {% for event in mission.events|sort(attribute='event_date') %}
+                                            <div class="col-md-6 mb-2">
+                                                <div class="card bg-light">
+                                                    <div class="card-body py-2">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <strong>{{ event.title }}</strong>
+                                                                <small class="text-muted d-block">
+                                                                    {{ event.event_date.strftime('%Y-%m-%d %H:%M') }}
+                                                                    • {{ event.event_type|title }}
+                                                                </small>
+                                                            </div>
+                                                            <span class="badge bg-secondary">
+                                                                {{ event.asset_changes|length }} asset changes
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-flag display-1 text-muted"></i>
+                    <h4 class="mt-3">No Missions Yet</h4>
+                    <p class="text-muted">Add your first mission to start tracking events and asset changes.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMissionModal">
+                        <i class="bi bi-plus-circle"></i> Add First Mission
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Missions Table View (Alternative) -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">All Missions</h5>
+        </div>
+        <div class="card-body">
+            {% if missions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Mission</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Events</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mission in missions|sort(attribute='mission_date', reverse=true) %}
+                            <tr>
+                                <td>{{ mission.mission_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <strong>{{ mission.name }}</strong>
+                                    {% if mission.description %}
+                                        <br><small class="text-muted">{{ mission.description[:50] }}{% if mission.description|length > 50 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mission.location %}
+                                        <span class="badge bg-light text-dark">
+                                            <i class="bi bi-geo-alt"></i> {{ mission.location }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if mission.status == 'completed' %}success{% elif mission.status == 'in_progress' %}warning{% elif mission.status == 'cancelled' %}danger{% else %}info{% endif %}">
+                                        {{ mission.status|replace('_', ' ')|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ mission.events|length }} events</span>
+                                    <br>
+                                    <small>
+                                        {% set total_changes = namespace(value=0) %}
+                                        {% for event in mission.events %}
+                                            {% set total_changes.value = total_changes.value + event.asset_changes|length %}
+                                        {% endfor %}
+                                        {{ total_changes.value }} asset changes
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('main.mission_events', mission_id=mission.id) }}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="bi bi-activity"></i> Events
+                                        </a>
+                                        <button class="btn btn-outline-secondary edit-mission-btn"
+                                                data-id="{{ mission.id }}"
+                                                data-name="{{ mission.name }}"
+                                                data-description="{{ mission.description or '' }}"
+                                                data-date="{{ mission.mission_date.strftime('%Y-%m-%d') }}"
+                                                data-location="{{ mission.location or '' }}"
+                                                data-status="{{ mission.status }}"
+                                                data-order-index="{{ mission.order_index or 0 }}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Mission Modal -->
+<div class="modal fade" id="addMissionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Mission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('main.add_mission') }}" id="addMissionForm">
+                <input type="hidden" name="campaign_id" value="{{ campaign.id }}">
+                
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="mission_name" class="form-label">Mission Name *</label>
+                            <input type="text" class="form-control" id="mission_name" name="name" required
+                                   placeholder="e.g., Operation Desert Storm, Recon Patrol, Supply Convoy">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="mission_date" class="form-label">Mission Date *</label>
+                            <input type="date" class="form-control" id="mission_date" name="mission_date" required
+                                   value="{{ today }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mission_location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="mission_location" name="location"
+                               placeholder="e.g., Altis Airfield, Takistan Mountains">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mission_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="mission_description" name="description" rows="3"
+                                  placeholder="Mission objectives, briefing, or notes..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="mission_status" class="form-label">Status</label>
+                            <select class="form-select" id="mission_status" name="status">
+                                <option value="planned">Planned</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="order_index" class="form-label">Order Index</label>
+                            <input type="number" class="form-control" id="order_index" name="order_index" 
+                                   value="{{ max_order + 1 }}" min="0">
+                            <small class="text-muted">Used for sorting missions</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Mission</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Mission Modal -->
+<div class="modal fade" id="editMissionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Mission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('main.edit_mission') }}" id="editMissionForm">
+                <input type="hidden" name="mission_id" id="edit_mission_id">
+                
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="edit_mission_name" class="form-label">Mission Name *</label>
+                            <input type="text" class="form-control" id="edit_mission_name" name="name" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="edit_mission_date" class="form-label">Mission Date *</label>
+                            <input type="date" class="form-control" id="edit_mission_date" name="mission_date" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_mission_location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="edit_mission_location" name="location">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_mission_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_mission_description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_mission_status" class="form-label">Status</label>
+                            <select class="form-select" id="edit_mission_status" name="status">
+                                <option value="planned">Planned</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_order_index" class="form-label">Order Index</label>
+                            <input type="number" class="form-control" id="edit_order_index" name="order_index" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Mission Modal -->
+<div class="modal fade" id="deleteMissionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Mission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete mission: <strong id="deleteMissionName"></strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Warning!</strong> This will also delete all events and asset changes associated with this mission.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('main.delete_mission') }}" id="deleteMissionForm">
+                    <input type="hidden" name="mission_id" id="delete_mission_id">
+                    <button type="submit" class="btn btn-danger">Delete Mission</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline-item {
+    position: relative;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -40px;
+    top: 0;
+    width: 30px;
+    height: 100%;
+}
+
+.marker-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    position: relative;
+    z-index: 2;
+}
+
+.marker-line {
+    position: absolute;
+    left: 7px;
+    top: 16px;
+    width: 2px;
+    height: calc(100% + 20px);
+    background-color: #dee2e6;
+    z-index: 1;
+}
+
+.timeline-item:last-child .marker-line {
+    display: none;
+}
+
+.timeline-content {
+    margin-left: 0;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('mission_date').value = today;
+    
+    // Edit Mission Modal
+    const editMissionModal = new bootstrap.Modal(document.getElementById('editMissionModal'));
+    const editMissionForm = document.getElementById('editMissionForm');
+    
+    document.querySelectorAll('.edit-mission-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('edit_mission_id').value = this.dataset.id;
+            document.getElementById('edit_mission_name').value = this.dataset.name;
+            document.getElementById('edit_mission_date').value = this.dataset.date;
+            document.getElementById('edit_mission_location').value = this.dataset.location || '';
+            document.getElementById('edit_mission_description').value = this.dataset.description || '';
+            document.getElementById('edit_mission_status').value = this.dataset.status;
+            
+            // Ensure order_index is set (default to 0 if not present)
+            const orderIndex = this.dataset.orderIndex || '0';
+            document.getElementById('edit_order_index').value = orderIndex;
+            
+            editMissionModal.show();
+        });
+    });
+    
+    // Delete Mission Modal
+    const deleteMissionModal = new bootstrap.Modal(document.getElementById('deleteMissionModal'));
+    
+    document.querySelectorAll('.delete-mission-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('deleteMissionName').textContent = this.dataset.name;
+            document.getElementById('delete_mission_id').value = this.dataset.id;
+            
+            deleteMissionModal.show();
+        });
+    });
+    
+    // Form submissions
+    editMissionForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating mission');
+        });
+    });
+});
+</script>
+{% endblock %}

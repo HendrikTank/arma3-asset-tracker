@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">Arma 3 Asset Tracker</a>
+        <div class="navbar-nav">
+            {% if current_user.is_authenticated and current_user.is_manager %}
+                <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">Admin</a>
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+            {% elif current_user.is_authenticated %}
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+            {% else %}
+                <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<h1>Current Campaign</h1>
+
+{% if campaign %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ campaign.name }}</h5>
+            <p class="card-text">{{ campaign.description or 'No description' }}</p>
+            <p class="card-text">
+                <small class="text-muted">
+                    Started: {{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'Not set' }}
+                </small>
+            </p>
+        </div>
+    </div>
+
+    <h3>Current Asset Pool</h3>
+    <div class="row">
+        {% for asset in assets %}
+        <div class="col-md-4">
+            <div class="card asset-card">
+                <div class="card-body">
+                    <h6 class="card-title">{{ asset.name }}</h6>
+                    <p class="card-text mb-1">
+                        <span class="badge bg-primary">{{ asset.type }}</span>
+                        {% if asset.category %}
+                            <span class="badge bg-secondary">{{ asset.category }}</span>
+                        {% endif %}
+                    </p>
+                    <p class="card-text">
+                        <strong>Quantity:</strong> {{ asset.current_quantity }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">No assets in the current campaign.</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('main.timeline') }}" class="btn btn-primary">
+            <i class="bi bi-calendar-event"></i> View Timeline
+        </a>
+    </div>
+{% else %}
+    <div class="alert alert-warning">
+        No active campaign. Please contact an administrator.
+    </div>
+{% endif %}
+{% endblock %}

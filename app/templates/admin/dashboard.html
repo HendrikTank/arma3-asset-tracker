@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">Arma 3 Asset Tracker - Admin</a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<h1>Admin Dashboard</h1>
+
+<!-- Add this to your admin dashboard -->
+<div class="row mt-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-box-seam display-4 text-primary mb-3"></i>
+                <h5 class="card-title">Assets Library</h5>
+                <p class="card-text">Manage vehicles, weapons, equipment, and other assets.</p>
+                <a href="{{ url_for('main.manage_assets') }}" class="btn btn-primary">Manage Assets</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-flag display-4 text-success mb-3"></i>
+                <h5 class="card-title">Campaigns</h5>
+                <p class="card-text">Create and manage campaigns, set active campaign.</p>
+                <a href="{{ url_for('main.manage_campaigns') }}" class="btn btn-success">Manage Campaigns</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text display-4 text-info mb-3"></i>
+                <h5 class="card-title">Reports</h5>
+                <p class="card-text">Generate and download campaign reports.</p>
+                <a href="#" class="btn btn-info">View Reports</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="mt-4">Active Campaigns</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Start Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for campaign in campaigns %}
+        <tr>
+            <td>{{ campaign.name }}</td>
+            <td>
+                {% if campaign.is_active %}
+                    <span class="badge bg-success">Active</span>
+                {% elif campaign.is_closed %}
+                    <span class="badge bg-secondary">Closed</span>
+                {% else %}
+                    <span class="badge bg-warning">Inactive</span>
+                {% endif %}
+            </td>
+            <td>{{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'N/A' }}</td>
+            <td>
+                <a href="{{ url_for('main.campaign_detail', campaign_id=campaign.id) }}" class="btn btn-sm btn-info">View</a>
+                {% if not campaign.is_closed %}
+                    <button class="btn btn-sm btn-success set-active-btn" data-id="{{ campaign.id }}">Set Active</button>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.set-active-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const campaignId = this.dataset.id;
+            if (confirm('Set this campaign as active?')) {
+                fetch(`/admin/campaign/${campaignId}/set-active`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

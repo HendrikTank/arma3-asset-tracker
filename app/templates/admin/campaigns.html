@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.admin_dashboard') }}">← Back to Admin Dashboard</a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{{ url_for('main.index') }}">Public View</a>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h1>Campaigns Management</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Create New Campaign Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Create New Campaign</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.manage_campaigns') }}">
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label for="name" class="form-label">Campaign Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required 
+                               placeholder="e.g., Operation Desert Storm, Winter Offensive 2024">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="start_date" class="form-label">Start Date *</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="{{ today }}" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"
+                              placeholder="Campaign objectives, setting, or special rules..."></textarea>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="set_active" name="set_active" checked>
+                    <label class="form-check-label" for="set_active">
+                        Set as active campaign (deactivates current active campaign)
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create Campaign
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Campaigns List -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">All Campaigns</h5>
+                <span class="badge bg-info">{{ campaigns|length }} total</span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if campaigns %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Name</th>
+                            <th>Dates</th>
+                            <th>Description</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for campaign in campaigns %}
+                        <tr class="{% if campaign.is_active %}table-success{% elif campaign.is_closed %}table-secondary{% endif %}">
+                            <td>
+                                {% if campaign.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% elif campaign.is_closed %}
+                                    <span class="badge bg-secondary">Closed</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ campaign.name }}</strong>
+                                {% if campaign.is_active %}
+                                    <br><small class="text-success">✓ Currently Active</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div><small><strong>Start:</strong> {{ campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'N/A' }}</small></div>
+                                {% if campaign.end_date %}
+                                    <div><small><strong>End:</strong> {{ campaign.end_date.strftime('%Y-%m-%d') }}</small></div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if campaign.description %}
+                                    <small>{{ campaign.description[:80] }}{% if campaign.description|length > 80 %}...{% endif %}</small>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ campaign.created_at.strftime('%Y-%m-%d') if campaign.created_at else 'N/A' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('main.campaign_detail', campaign_id=campaign.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        Manage
+                                    </a>
+                                    
+                                    {% if not campaign.is_closed %}
+                                        {% if not campaign.is_active %}
+                                            <button class="btn btn-outline-success set-active-btn" 
+                                                    data-id="{{ campaign.id }}"
+                                                    data-name="{{ campaign.name }}">
+                                                Set Active
+                                            </button>
+                                        {% endif %}
+                                        
+                                        <button class="btn btn-outline-danger close-campaign-btn" 
+                                                data-id="{{ campaign.id }}"
+                                                data-name="{{ campaign.name }}">
+                                            Close
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No campaigns yet. Create your first campaign above!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Set Active Campaign Modal -->
+<div class="modal fade" id="setActiveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Set Campaign Active</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Set <strong id="activeCampaignName"></strong> as the active campaign?</p>
+                <p class="text-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    This will deactivate the current active campaign.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="setActiveForm" method="POST" action="{{ url_for('main.set_campaign_active') }}">
+                    <input type="hidden" id="active_campaign_id" name="campaign_id">
+                    <button type="submit" class="btn btn-success">Set as Active</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Close Campaign Modal -->
+<div class="modal fade" id="closeCampaignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Close Campaign</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to close <strong id="closeCampaignName"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>This action cannot be undone!</strong>
+                    <ul class="mt-2 mb-0">
+                        <li>Campaign will be marked as closed</li>
+                        <li>No further changes can be made</li>
+                        <li>A final report will be generated</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="closeCampaignForm" method="POST" action="{{ url_for('main.close_campaign') }}">
+                    <input type="hidden" id="close_campaign_id" name="campaign_id">
+                    <button type="submit" class="btn btn-danger">Close Campaign</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('start_date').value = today;
+    
+    // Set Active Campaign Modal
+    const setActiveModal = new bootstrap.Modal(document.getElementById('setActiveModal'));
+    const setActiveForm = document.getElementById('setActiveForm');
+    
+    document.querySelectorAll('.set-active-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const campaignId = this.dataset.id;
+            const campaignName = this.dataset.name;
+            
+            document.getElementById('activeCampaignName').textContent = campaignName;
+            document.getElementById('active_campaign_id').value = campaignId;
+            
+            setActiveModal.show();
+        });
+    });
+    
+    // Close Campaign Modal
+    const closeCampaignModal = new bootstrap.Modal(document.getElementById('closeCampaignModal'));
+    const closeCampaignForm = document.getElementById('closeCampaignForm');
+    
+    document.querySelectorAll('.close-campaign-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const campaignId = this.dataset.id;
+            const campaignName = this.dataset.name;
+            
+            document.getElementById('closeCampaignName').textContent = campaignName;
+            document.getElementById('close_campaign_id').value = campaignId;
+            
+            closeCampaignModal.show();
+        });
+    });
+    
+    // Handle form submissions
+    setActiveForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch(this.action, {
+            method: 'POST',
+            body: new FormData(this)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error setting campaign active');
+        });
+    });
+    
+    closeCampaignForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch(this.action, {
+            method: 'POST',
+            body: new FormData(this)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error closing campaign');
+        });
+    });
+});
+</script>
+{% endblock %}
