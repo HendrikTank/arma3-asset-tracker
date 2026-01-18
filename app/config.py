@@ -9,6 +9,9 @@ class Config:
     # Basic Flask config
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
+    # Proxy configuration (for Traefik/reverse proxy)
+    PREFERRED_URL_SCHEME = 'https'
+    
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'postgresql://postgres:password@localhost/asset_tracker'
