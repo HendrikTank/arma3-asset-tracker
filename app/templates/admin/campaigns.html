@@ -195,16 +195,20 @@
                                     
                                     {% if not campaign.is_closed %}
                                         {% if not campaign.is_active %}
-                                            <button class="btn btn-outline-success set-active-btn" 
+                                            <button type="button" 
+                                                    class="btn btn-outline-success set-active-btn" 
                                                     data-id="{{ campaign.id }}"
-                                                    data-name="{{ campaign.name }}">
+                                                    data-name="{{ campaign.name }}"
+                                                    style="cursor: pointer;">
                                                 Set Active
                                             </button>
                                         {% endif %}
                                         
-                                        <button class="btn btn-outline-danger close-campaign-btn" 
+                                        <button type="button" 
+                                                class="btn btn-outline-danger close-campaign-btn" 
                                                 data-id="{{ campaign.id }}"
-                                                data-name="{{ campaign.name }}">
+                                                data-name="{{ campaign.name }}"
+                                                style="cursor: pointer;">
                                             Close
                                         </button>
                                     {% endif %}
@@ -288,9 +292,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Campaigns page JavaScript loaded');
+    console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
     
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('start_date').value = today;
+    const startDateField = document.getElementById('start_date');
+    if (startDateField) {
+        startDateField.value = today;
+    }
     
     // Set Active Campaign Modal
     const setActiveModalElement = document.getElementById('setActiveModal');
@@ -300,23 +308,29 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Set Active Form:', setActiveForm);
     
     if (setActiveModalElement && setActiveForm) {
-        const setActiveModal = new bootstrap.Modal(setActiveModalElement);
-        
-        const setActiveButtons = document.querySelectorAll('.set-active-btn');
-        console.log('Found', setActiveButtons.length, 'set-active buttons');
-        
-        setActiveButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                console.log('Set Active button clicked:', this.dataset.name);
-                const campaignId = this.dataset.id;
-                const campaignName = this.dataset.name;
-                
-                document.getElementById('activeCampaignName').textContent = campaignName;
-                document.getElementById('active_campaign_id').value = campaignId;
-                
-                setActiveModal.show();
+        try {
+            const setActiveModal = new bootstrap.Modal(setActiveModalElement);
+            console.log('Set Active Modal initialized successfully');
+            
+            const setActiveButtons = document.querySelectorAll('.set-active-btn');
+            console.log('Found', setActiveButtons.length, 'set-active buttons');
+            
+            setActiveButtons.forEach(button => {
+                console.log('Attaching click handler to button:', button);
+                button.addEventListener('click', function() {
+                    console.log('Set Active button clicked:', this.dataset.name);
+                    const campaignId = this.dataset.id;
+                    const campaignName = this.dataset.name;
+                    
+                    document.getElementById('activeCampaignName').textContent = campaignName;
+                    document.getElementById('active_campaign_id').value = campaignId;
+                    
+                    setActiveModal.show();
+                });
             });
-        });
+        } catch (error) {
+            console.error('Error initializing Set Active Modal:', error);
+        }
     } else {
         console.error('Set Active Modal or Form not found!');
     }
@@ -329,23 +343,29 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Close Campaign Form:', closeCampaignForm);
     
     if (closeCampaignModalElement && closeCampaignForm) {
-        const closeCampaignModal = new bootstrap.Modal(closeCampaignModalElement);
-        
-        const closeButtons = document.querySelectorAll('.close-campaign-btn');
-        console.log('Found', closeButtons.length, 'close-campaign buttons');
-        
-        closeButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                console.log('Close Campaign button clicked:', this.dataset.name);
-                const campaignId = this.dataset.id;
-                const campaignName = this.dataset.name;
-                
-                document.getElementById('closeCampaignName').textContent = campaignName;
-                document.getElementById('close_campaign_id').value = campaignId;
-                
-                closeCampaignModal.show();
+        try {
+            const closeCampaignModal = new bootstrap.Modal(closeCampaignModalElement);
+            console.log('Close Campaign Modal initialized successfully');
+            
+            const closeButtons = document.querySelectorAll('.close-campaign-btn');
+            console.log('Found', closeButtons.length, 'close-campaign buttons');
+            
+            closeButtons.forEach(button => {
+                console.log('Attaching click handler to close button:', button);
+                button.addEventListener('click', function() {
+                    console.log('Close Campaign button clicked:', this.dataset.name);
+                    const campaignId = this.dataset.id;
+                    const campaignName = this.dataset.name;
+                    
+                    document.getElementById('closeCampaignName').textContent = campaignName;
+                    document.getElementById('close_campaign_id').value = campaignId;
+                    
+                    closeCampaignModal.show();
+                });
             });
-        });
+        } catch (error) {
+            console.error('Error initializing Close Campaign Modal:', error);
+        }
     } else {
         console.error('Close Campaign Modal or Form not found!');
     }
