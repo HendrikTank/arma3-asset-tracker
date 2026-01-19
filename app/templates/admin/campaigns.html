@@ -291,92 +291,54 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Campaigns page JavaScript loaded');
-    console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+    console.log('Campaigns page loaded');
     
-    const today = new Date().toISOString().split('T')[0];
+    // Set default start date
     const startDateField = document.getElementById('start_date');
     if (startDateField) {
+        const today = new Date().toISOString().split('T')[0];
         startDateField.value = today;
     }
     
-    // Set Active Campaign Modal
-    const setActiveModalElement = document.getElementById('setActiveModal');
+    // Handle Set Active Modal - populate data when modal is shown
+    const setActiveModal = document.getElementById('setActiveModal');
+    if (setActiveModal) {
+        setActiveModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const campaignId = button.getAttribute('data-id');
+            const campaignName = button.getAttribute('data-name');
+            
+            console.log('Set Active modal opening for:', campaignName);
+            
+            document.getElementById('activeCampaignName').textContent = campaignName;
+            document.getElementById('active_campaign_id').value = campaignId;
+        });
+    }
+    
+    // Handle Close Campaign Modal - populate data when modal is shown
+    const closeCampaignModal = document.getElementById('closeCampaignModal');
+    if (closeCampaignModal) {
+        closeCampaignModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const campaignId = button.getAttribute('data-id');
+            const campaignName = button.getAttribute('data-name');
+            
+            console.log('Close modal opening for:', campaignName);
+            
+            document.getElementById('closeCampaignName').textContent = campaignName;
+            document.getElementById('close_campaign_id').value = campaignId;
+        });
+    }
+    
+    // Handle Set Active form submission
     const setActiveForm = document.getElementById('setActiveForm');
-    
-    console.log('Set Active Modal element:', setActiveModalElement);
-    console.log('Set Active Form:', setActiveForm);
-    
-    if (setActiveModalElement && setActiveForm) {
-        try {
-            const setActiveModal = new bootstrap.Modal(setActiveModalElement);
-            console.log('Set Active Modal initialized successfully');
-            
-            const setActiveButtons = document.querySelectorAll('.set-active-btn');
-            console.log('Found', setActiveButtons.length, 'set-active buttons');
-            
-            setActiveButtons.forEach(button => {
-                console.log('Attaching click handler to button:', button);
-                button.addEventListener('click', function() {
-                    console.log('Set Active button clicked:', this.dataset.name);
-                    const campaignId = this.dataset.id;
-                    const campaignName = this.dataset.name;
-                    
-                    document.getElementById('activeCampaignName').textContent = campaignName;
-                    document.getElementById('active_campaign_id').value = campaignId;
-                    
-                    setActiveModal.show();
-                });
-            });
-        } catch (error) {
-            console.error('Error initializing Set Active Modal:', error);
-        }
-    } else {
-        console.error('Set Active Modal or Form not found!');
-    }
-    
-    // Close Campaign Modal
-    const closeCampaignModalElement = document.getElementById('closeCampaignModal');
-    const closeCampaignForm = document.getElementById('closeCampaignForm');
-    
-    console.log('Close Campaign Modal element:', closeCampaignModalElement);
-    console.log('Close Campaign Form:', closeCampaignForm);
-    
-    if (closeCampaignModalElement && closeCampaignForm) {
-        try {
-            const closeCampaignModal = new bootstrap.Modal(closeCampaignModalElement);
-            console.log('Close Campaign Modal initialized successfully');
-            
-            const closeButtons = document.querySelectorAll('.close-campaign-btn');
-            console.log('Found', closeButtons.length, 'close-campaign buttons');
-            
-            closeButtons.forEach(button => {
-                console.log('Attaching click handler to close button:', button);
-                button.addEventListener('click', function() {
-                    console.log('Close Campaign button clicked:', this.dataset.name);
-                    const campaignId = this.dataset.id;
-                    const campaignName = this.dataset.name;
-                    
-                    document.getElementById('closeCampaignName').textContent = campaignName;
-                    document.getElementById('close_campaign_id').value = campaignId;
-                    
-                    closeCampaignModal.show();
-                });
-            });
-        } catch (error) {
-            console.error('Error initializing Close Campaign Modal:', error);
-        }
-    } else {
-        console.error('Close Campaign Modal or Form not found!');
-    }
-    
-    // Handle form submissions - both should just submit normally
     if (setActiveForm) {
         setActiveForm.addEventListener('submit', function(e) {
-            console.log('Set Active form submitting...');
             e.preventDefault();
+            console.log('Submitting Set Active form');
+            
             const formData = new FormData(this);
             
             fetch(this.action, {
@@ -385,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Set Active response:', data);
+                console.log('Response:', data);
                 if (data.success) {
                     location.reload();
                 } else {
@@ -399,10 +361,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Handle Close Campaign form submission
+    const closeCampaignForm = document.getElementById('closeCampaignForm');
     if (closeCampaignForm) {
         closeCampaignForm.addEventListener('submit', function(e) {
-            console.log('Close Campaign form submitting...');
             e.preventDefault();
+            console.log('Submitting Close Campaign form');
+            
             const formData = new FormData(this);
             
             fetch(this.action, {
@@ -411,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Close Campaign response:', data);
+                console.log('Response:', data);
                 if (data.success) {
                     location.reload();
                 } else {
