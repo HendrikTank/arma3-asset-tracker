@@ -196,19 +196,21 @@
                                     {% if not campaign.is_closed %}
                                         {% if not campaign.is_active %}
                                             <button type="button" 
-                                                    class="btn btn-outline-success set-active-btn" 
+                                                    class="btn btn-outline-success" 
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#setActiveModal"
                                                     data-id="{{ campaign.id }}"
-                                                    data-name="{{ campaign.name }}"
-                                                    style="cursor: pointer;">
+                                                    data-name="{{ campaign.name }}">
                                                 Set Active
                                             </button>
                                         {% endif %}
                                         
                                         <button type="button" 
-                                                class="btn btn-outline-danger close-campaign-btn" 
+                                                class="btn btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#closeCampaignModal"
                                                 data-id="{{ campaign.id }}"
-                                                data-name="{{ campaign.name }}"
-                                                style="cursor: pointer;">
+                                                data-name="{{ campaign.name }}">
                                             Close
                                         </button>
                                     {% endif %}
