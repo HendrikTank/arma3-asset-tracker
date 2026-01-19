@@ -60,7 +60,7 @@ def create_app(config_name=None):
             strict_transport_security_max_age=31536000,
             content_security_policy={
                 'default-src': ["'self'"],
-                'script-src': ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+                'script-src': ["'self'", "https://cdn.jsdelivr.net"],
                 'style-src': ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
                 'font-src': ["'self'", "https://cdn.jsdelivr.net"],
                 'img-src': ["'self'", "data:", "https:"],
