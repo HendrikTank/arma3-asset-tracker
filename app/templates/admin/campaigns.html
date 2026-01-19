@@ -302,42 +302,47 @@ document.addEventListener('DOMContentLoaded', function() {
         startDateField.value = today;
     }
     
-    // Handle Set Active Modal - populate data when modal is shown
-    const setActiveModal = document.getElementById('setActiveModal');
-    if (setActiveModal) {
-        setActiveModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const campaignId = button.getAttribute('data-id');
-            const campaignName = button.getAttribute('data-name');
+    // Handle Set Active Modal - use click event on buttons
+    const setActiveButtons = document.querySelectorAll('[data-bs-target="#setActiveModal"]');
+    setActiveButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const campaignId = this.getAttribute('data-id');
+            const campaignName = this.getAttribute('data-name');
             
-            console.log('Set Active modal opening for:', campaignName);
+            console.log('Set Active button clicked:', campaignName, 'ID:', campaignId);
             
             document.getElementById('activeCampaignName').textContent = campaignName;
             document.getElementById('active_campaign_id').value = campaignId;
         });
-    }
+    });
     
-    // Handle Close Campaign Modal - populate data when modal is shown
-    const closeCampaignModal = document.getElementById('closeCampaignModal');
-    if (closeCampaignModal) {
-        closeCampaignModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const campaignId = button.getAttribute('data-id');
-            const campaignName = button.getAttribute('data-name');
+    // Handle Close Campaign Modal - use click event on buttons
+    const closeButtons = document.querySelectorAll('[data-bs-target="#closeCampaignModal"]');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const campaignId = this.getAttribute('data-id');
+            const campaignName = this.getAttribute('data-name');
             
-            console.log('Close modal opening for:', campaignName);
+            console.log('Close button clicked:', campaignName, 'ID:', campaignId);
             
             document.getElementById('closeCampaignName').textContent = campaignName;
             document.getElementById('close_campaign_id').value = campaignId;
         });
-    }
+    });
     
     // Handle Set Active form submission
     const setActiveForm = document.getElementById('setActiveForm');
     if (setActiveForm) {
         setActiveForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            console.log('Submitting Set Active form');
+            
+            const campaignId = document.getElementById('active_campaign_id').value;
+            console.log('Submitting Set Active form for campaign ID:', campaignId);
+            
+            if (!campaignId) {
+                alert('Error: No campaign selected');
+                return;
+            }
             
             const formData = new FormData(this);
             
@@ -366,7 +371,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeCampaignForm) {
         closeCampaignForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            console.log('Submitting Close Campaign form');
+            
+            const campaignId = document.getElementById('close_campaign_id').value;
+            console.log('Submitting Close Campaign form for campaign ID:', campaignId);
+            
+            if (!campaignId) {
+                alert('Error: No campaign selected');
+                return;
+            }
             
             const formData = new FormData(this);
             

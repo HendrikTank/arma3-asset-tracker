@@ -377,7 +377,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
     const setActiveModal = new bootstrap.Modal(document.getElementById('setActiveModal'));
     const closeCampaignModal = new bootstrap.Modal(document.getElementById('closeCampaignModal'));
@@ -388,6 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const setActiveBtn = document.querySelector('.set-active-btn');
     if (setActiveBtn) {
         setActiveBtn.addEventListener('click', function() {
+            console.log('Set Active clicked for campaign ID:', '{{ campaign.id }}');
             setActiveModal.show();
         });
     }
@@ -396,6 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeCampaignBtn = document.querySelector('.close-campaign-btn');
     if (closeCampaignBtn) {
         closeCampaignBtn.addEventListener('click', function() {
+            console.log('Close Campaign clicked for campaign ID:', '{{ campaign.id }}');
             closeCampaignModal.show();
         });
     }
@@ -404,6 +406,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (setActiveForm) {
         setActiveForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            const campaignId = document.getElementById('active_campaign_id').value;
+            console.log('Submitting Set Active form for campaign ID:', campaignId);
+            
+            if (!campaignId) {
+                alert('Error: No campaign ID');
+                return;
+            }
+            
             const formData = new FormData(this);
             
             fetch(this.action, {
@@ -412,6 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
+                console.log('Response:', data);
                 if (data.success) {
                     location.reload();
                 } else {
@@ -429,6 +441,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeCampaignForm) {
         closeCampaignForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            const campaignId = document.getElementById('close_campaign_id').value;
+            console.log('Submitting Close Campaign form for campaign ID:', campaignId);
+            
+            if (!campaignId) {
+                alert('Error: No campaign ID');
+                return;
+            }
+            
             const formData = new FormData(this);
             
             fetch(this.action, {
@@ -436,7 +457,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             })
             .then(response => response.json())
-            .then(data => {
+            .then data => {
+                console.log('Response:', data);
                 if (data.success) {
                     location.reload();
                 } else {
@@ -451,42 +473,45 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add Asset to Campaign
-    document.getElementById('add_asset_btn').addEventListener('click', function() {
-        const assetSelect = document.getElementById('asset_select');
-        const assetId = assetSelect.value;
-        const quantity = document.getElementById('asset_quantity').value || 1;
-        
-        if (!assetId) {
-            alert('Please select an asset');
-            return;
-        }
-        
-        const assetName = assetSelect.options[assetSelect.selectedIndex].dataset.name;
-        
-        fetch('{{ url_for("main.add_asset_to_campaign", campaign_id=campaign.id) }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                asset_id: parseInt(assetId),
-                quantity: parseInt(quantity)
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + data.error);
+    const addAssetBtn = document.getElementById('add_asset_btn');
+    if (addAssetBtn) {
+        addAssetBtn.addEventListener('click', function() {
+            const assetSelect = document.getElementById('asset_select');
+            const assetId = assetSelect.value;
+            const quantity = document.getElementById('asset_quantity').value || 1;
+            
+            if (!assetId) {
+                alert('Please select an asset');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error adding asset');
+            
+            const assetName = assetSelect.options[assetSelect.selectedIndex].dataset.name;
+            
+            fetch('{{ url_for("main.add_asset_to_campaign", campaign_id=campaign.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    asset_id: parseInt(assetId),
+                    quantity: parseInt(quantity)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding asset');
+            });
         });
-    });
+    }
     
     // Update initial quantity
     document.querySelectorAll('.initial-qty').forEach(input => {
