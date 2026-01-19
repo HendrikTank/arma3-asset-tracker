@@ -287,85 +287,121 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Campaigns page JavaScript loaded');
+    
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('start_date').value = today;
     
     // Set Active Campaign Modal
-    const setActiveModal = new bootstrap.Modal(document.getElementById('setActiveModal'));
+    const setActiveModalElement = document.getElementById('setActiveModal');
     const setActiveForm = document.getElementById('setActiveForm');
     
-    document.querySelectorAll('.set-active-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const campaignId = this.dataset.id;
-            const campaignName = this.dataset.name;
-            
-            document.getElementById('activeCampaignName').textContent = campaignName;
-            document.getElementById('active_campaign_id').value = campaignId;
-            
-            setActiveModal.show();
+    console.log('Set Active Modal element:', setActiveModalElement);
+    console.log('Set Active Form:', setActiveForm);
+    
+    if (setActiveModalElement && setActiveForm) {
+        const setActiveModal = new bootstrap.Modal(setActiveModalElement);
+        
+        const setActiveButtons = document.querySelectorAll('.set-active-btn');
+        console.log('Found', setActiveButtons.length, 'set-active buttons');
+        
+        setActiveButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                console.log('Set Active button clicked:', this.dataset.name);
+                const campaignId = this.dataset.id;
+                const campaignName = this.dataset.name;
+                
+                document.getElementById('activeCampaignName').textContent = campaignName;
+                document.getElementById('active_campaign_id').value = campaignId;
+                
+                setActiveModal.show();
+            });
         });
-    });
+    } else {
+        console.error('Set Active Modal or Form not found!');
+    }
     
     // Close Campaign Modal
-    const closeCampaignModal = new bootstrap.Modal(document.getElementById('closeCampaignModal'));
+    const closeCampaignModalElement = document.getElementById('closeCampaignModal');
     const closeCampaignForm = document.getElementById('closeCampaignForm');
     
-    document.querySelectorAll('.close-campaign-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const campaignId = this.dataset.id;
-            const campaignName = this.dataset.name;
-            
-            document.getElementById('closeCampaignName').textContent = campaignName;
-            document.getElementById('close_campaign_id').value = campaignId;
-            
-            closeCampaignModal.show();
+    console.log('Close Campaign Modal element:', closeCampaignModalElement);
+    console.log('Close Campaign Form:', closeCampaignForm);
+    
+    if (closeCampaignModalElement && closeCampaignForm) {
+        const closeCampaignModal = new bootstrap.Modal(closeCampaignModalElement);
+        
+        const closeButtons = document.querySelectorAll('.close-campaign-btn');
+        console.log('Found', closeButtons.length, 'close-campaign buttons');
+        
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                console.log('Close Campaign button clicked:', this.dataset.name);
+                const campaignId = this.dataset.id;
+                const campaignName = this.dataset.name;
+                
+                document.getElementById('closeCampaignName').textContent = campaignName;
+                document.getElementById('close_campaign_id').value = campaignId;
+                
+                closeCampaignModal.show();
+            });
         });
-    });
+    } else {
+        console.error('Close Campaign Modal or Form not found!');
+    }
     
     // Handle form submissions - both should just submit normally
-    setActiveForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        
-        fetch(this.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error setting campaign active');
+    if (setActiveForm) {
+        setActiveForm.addEventListener('submit', function(e) {
+            console.log('Set Active form submitting...');
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Set Active response:', data);
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error setting campaign active');
+            });
         });
-    });
+    }
     
-    closeCampaignForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        
-        fetch(this.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error closing campaign');
+    if (closeCampaignForm) {
+        closeCampaignForm.addEventListener('submit', function(e) {
+            console.log('Close Campaign form submitting...');
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Close Campaign response:', data);
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error closing campaign');
+            });
         });
-    });
+    }
 });
 </script>
 {% endblock %}

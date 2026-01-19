@@ -733,13 +733,20 @@ def manage_campaigns():
     
     if request.method == 'POST':
         try:
+            # Check if user wants to set this as active
+            set_as_active = request.form.get('set_active') == 'on'
+            
+            # If setting as active, deactivate all other campaigns first
+            if set_as_active:
+                Campaign.query.update({'is_active': False})
+            
             campaign = Campaign(
                 name=request.form['name'],
                 description=request.form.get('description', ''),
                 start_date=datetime.strptime(request.form['start_date'], '%Y-%m-%d') if request.form.get('start_date') else None,
                 map_edit_url=request.form.get('map_edit_url', ''),
                 map_view_url=request.form.get('map_view_url', ''),
-                is_active=False
+                is_active=set_as_active
             )
             
             db.session.add(campaign)
