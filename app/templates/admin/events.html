@@ -500,7 +500,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Set default event time to mission date at 12:00
     const missionDate = '{{ mission.mission_date.strftime("%Y-%m-%d") }}';

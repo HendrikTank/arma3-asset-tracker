@@ -233,8 +233,8 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script>
+<script  nonce="{{ csp_nonce() }}" src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script nonce="{{ csp_nonce() }}">
 // Mission Status Chart
 const ctx = document.getElementById('missionStatusChart').getContext('2d');
 new Chart(ctx, {

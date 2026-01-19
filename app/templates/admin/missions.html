@@ -464,7 +464,7 @@
 </style>
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('mission_date').value = today;

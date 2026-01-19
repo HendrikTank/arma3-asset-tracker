@@ -345,7 +345,7 @@
     }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Add rotation animation to collapse icons
 document.addEventListener('DOMContentLoaded', function() {
     const missionHeaders = document.querySelectorAll('.mission-card .card-header');
