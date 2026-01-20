@@ -10,6 +10,82 @@ import os
 
 main = Blueprint('main', __name__)
 
+# Helper function for library syncing
+def sync_library_to_campaigns(library_id):
+    """
+    Sync a library's assets to all campaigns that have imported it.
+    Adds new assets that were added to the library after initial import.
+    Does not remove assets or update quantities of existing assets.
+    
+    Returns: dict with sync statistics
+    """
+    try:
+        library = AssetLibrary.query.get(library_id)
+        if not library:
+            return {'success': False, 'error': 'Library not found'}
+        
+        # Get all campaigns that have imported this library
+        imports = CampaignLibraryImport.query.filter_by(library_id=library_id).all()
+        
+        sync_stats = {
+            'success': True,
+            'campaigns_updated': 0,
+            'assets_added': 0,
+            'campaigns': []
+        }
+        
+        for library_import in imports:
+            campaign_id = library_import.campaign_id
+            campaign = Campaign.query.get(campaign_id)
+            
+            if not campaign:
+                continue
+            
+            # Get all assets from the library
+            library_assets = Asset.query.filter_by(library_id=library_id).all()
+            
+            assets_added_to_campaign = 0
+            
+            for asset in library_assets:
+                # Check if asset already exists in campaign
+                existing_asset = CampaignAsset.query.filter_by(
+                    campaign_id=campaign_id,
+                    asset_id=asset.id
+                ).first()
+                
+                if not existing_asset:
+                    # Add new asset to campaign
+                    campaign_asset = CampaignAsset(
+                        campaign_id=campaign_id,
+                        asset_id=asset.id,
+                        library_id=library_id,
+                        initial_quantity=asset.default_quantity,
+                        current_quantity=asset.default_quantity
+                    )
+                    db.session.add(campaign_asset)
+                    assets_added_to_campaign += 1
+            
+            if assets_added_to_campaign > 0:
+                sync_stats['campaigns_updated'] += 1
+                sync_stats['assets_added'] += assets_added_to_campaign
+                sync_stats['campaigns'].append({
+                    'name': campaign.name,
+                    'assets_added': assets_added_to_campaign
+                })
+            
+            # Update last_synced_at timestamp
+            library_import.last_synced_at = datetime.utcnow()
+        
+        # Update library's updated_at timestamp
+        library.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return sync_stats
+        
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'error': str(e)}
+
 # Public routes
 @main.route('/')
 def index():
@@ -1019,6 +1095,31 @@ def remove_asset_from_campaign():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
+@main.route('/api/toggle-asset-visibility', methods=['POST'])
+@login_required
+def toggle_asset_visibility():
+    """Toggle the show_in_public visibility of an asset"""
+    if not current_user.is_manager:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        data = request.get_json()
+        asset_id = data['asset_id']
+        
+        asset = Asset.query.get_or_404(asset_id)
+        
+        # Toggle the visibility
+        asset.show_in_public = not asset.show_in_public
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'show_in_public': asset.show_in_public
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 # Asset Library Management Routes
 @main.route('/admin/libraries')
 @login_required
@@ -1093,7 +1194,13 @@ def add_asset_to_library(library_id):
         )
         db.session.add(asset)
         db.session.commit()
-        flash(f'Asset "{asset.name}" added successfully!', 'success')
+        
+        # Auto-sync library to campaigns
+        sync_result = sync_library_to_campaigns(library_id)
+        if sync_result['success'] and sync_result['assets_added'] > 0:
+            flash(f'Asset "{asset.name}" added successfully! Synced to {sync_result["campaigns_updated"]} campaign(s).', 'success')
+        else:
+            flash(f'Asset "{asset.name}" added successfully!', 'success')
     except Exception as e:
         flash(f'Error adding asset: {str(e)}', 'error')
     
@@ -1119,6 +1226,10 @@ def edit_library_asset(library_id, asset_id):
         asset.show_in_public = request.form.get('show_in_public') == 'on'
         
         db.session.commit()
+        
+        # Auto-sync library to campaigns (updates timestamp, checks for any new assets)
+        sync_library_to_campaigns(library_id)
+        
         flash(f'Asset "{asset.name}" updated successfully!', 'success')
     except Exception as e:
         flash(f'Error updating asset: {str(e)}', 'error')
@@ -1229,6 +1340,66 @@ def import_library_to_campaign(campaign_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error importing library: {str(e)}', 'error')
+    
+    return redirect(url_for('main.campaign_detail', campaign_id=campaign_id))
+
+@main.route('/admin/campaign/<int:campaign_id>/sync-library/<int:library_id>', methods=['POST'])
+@login_required
+def sync_library_to_campaign(campaign_id, library_id):
+    """Manually sync a library to a specific campaign"""
+    if not current_user.is_manager:
+        flash('Access denied. Manager login required.', 'error')
+        return redirect(url_for('main.index'))
+    
+    try:
+        # Verify campaign exists and library is imported
+        campaign = Campaign.query.get_or_404(campaign_id)
+        library_import = CampaignLibraryImport.query.filter_by(
+            campaign_id=campaign_id,
+            library_id=library_id
+        ).first()
+        
+        if not library_import:
+            flash('Library not imported to this campaign.', 'error')
+            return redirect(url_for('main.campaign_detail', campaign_id=campaign_id))
+        
+        library = AssetLibrary.query.get_or_404(library_id)
+        
+        # Get all assets from the library
+        library_assets = Asset.query.filter_by(library_id=library_id).all()
+        assets_added = 0
+        
+        for asset in library_assets:
+            # Check if asset already exists in campaign
+            existing_asset = CampaignAsset.query.filter_by(
+                campaign_id=campaign_id,
+                asset_id=asset.id
+            ).first()
+            
+            if not existing_asset:
+                # Add new asset to campaign
+                campaign_asset = CampaignAsset(
+                    campaign_id=campaign_id,
+                    asset_id=asset.id,
+                    library_id=library_id,
+                    initial_quantity=asset.default_quantity,
+                    current_quantity=asset.default_quantity
+                )
+                db.session.add(campaign_asset)
+                assets_added += 1
+        
+        # Update last_synced_at timestamp
+        library_import.last_synced_at = datetime.utcnow()
+        db.session.commit()
+        
+        if assets_added > 0:
+            flash(f'Library "{library.name}" synced successfully! Added {assets_added} new asset(s).', 'success')
+        else:
+            flash(f'Library "{library.name}" is already up to date.', 'info')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error syncing library: {str(e)}', 'error')
     
     return redirect(url_for('main.campaign_detail', campaign_id=campaign_id))
 

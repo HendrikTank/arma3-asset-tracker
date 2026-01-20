@@ -35,6 +35,7 @@ class AssetLibrary(db.Model):
     category = db.Column(db.String(100))  # e.g., "Modern Warfare", "WWII", "Sci-Fi"
     is_default = db.Column(db.Boolean, default=False)  # Default libraries loaded for new campaigns
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     assets = db.relationship('Asset', backref='library', lazy=True, cascade='all, delete-orphan')
@@ -52,6 +53,7 @@ class Asset(db.Model):
     is_unique = db.Column(db.Boolean, default=False)
     show_in_public = db.Column(db.Boolean, default=True)  # Show this asset in public view
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Campaign(db.Model):
@@ -78,6 +80,7 @@ class CampaignLibraryImport(db.Model):
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
     library_id = db.Column(db.Integer, db.ForeignKey('asset_library.id'), nullable=False)
     imported_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_synced_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationship
     library = db.relationship('AssetLibrary', backref='campaign_imports')
