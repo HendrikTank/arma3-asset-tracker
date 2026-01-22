@@ -968,7 +968,7 @@ def close_campaign():
         
         # Check if this is an AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.accept_mimetypes.accept_json:
-            return jsonify({'success': False, 'error': str(e)}), 400
+            return jsonify({'success': False, 'error': 'Error closing campaign'}), 400
         else:
             return redirect(url_for('main.manage_campaigns'))
 
